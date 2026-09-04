@@ -1,0 +1,50 @@
+### DevDesk AI API requests
+@host = http://localhost:8080
+
+### Health check
+GET {{host}}/actuator/health
+
+### Load policy documents
+POST {{host}}/api/ingest
+
+### Ask a policy question
+POST {{host}}/api/chat
+Content-Type: application/json
+
+{
+  "question": "VPN 승인에는 얼마나 걸려?",
+  "sessionId": "policy-demo",
+  "userId": "user1"
+}
+
+### Check the current user's access
+POST {{host}}/api/chat
+Content-Type: application/json
+
+{
+  "question": "내 DEV_DB 권한 상태 알려줘.",
+  "sessionId": "access-demo",
+  "userId": "user1"
+}
+
+### Create a pending support ticket
+POST {{host}}/api/chat
+Content-Type: application/json
+
+{
+  "question": "PROD_DB 권한을 신청해줘. 운영 지원에 필요해.",
+  "sessionId": "ticket-demo",
+  "userId": "user1"
+}
+
+### Inspect conversation history
+GET {{host}}/api/history?sessionId=access-demo&userId=user1
+
+### Inspect pending tickets
+GET {{host}}/api/admin/tickets
+
+### Application metrics
+GET {{host}}/api/metrics
+
+### Prometheus metrics
+GET {{host}}/actuator/prometheus

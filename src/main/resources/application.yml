@@ -1,0 +1,63 @@
+spring:
+  application:
+    name: devdesk-ai
+
+  ai:
+    openai:
+      # 키는 소스에 넣지 않는다.  export OPENAI_API_KEY="sk-..."
+      # 기본값이 있어 키가 없어도 앱은 뜬다 — 실제 모델 호출 시점에만 401 이 난다.
+      api-key: ${OPENAI_API_KEY:not-set}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.7
+      embedding:
+        options:
+          model: text-embedding-3-small
+
+    # 운영에서는 프롬프트 원문 로깅을 반드시 끈다(개인정보가 그대로 쌓인다).
+    chat:
+      observations:
+        log-prompt: false
+      client:
+        observations:
+          log-prompt: false
+
+server:
+  port: 8080
+
+# ── API 문서 · Swagger UI ──────────────────────────────────
+#   화면 http://localhost:8080/swagger-ui.html   문서 /v3/api-docs
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+    display-request-duration: true
+    doc-expansion: none
+  default-produces-media-type: application/json
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    tags:
+      application: devdesk-ai
+
+logging:
+  level:
+    com.devdesk.agent: INFO
+    org.springframework.web: INFO
+    org.springframework.ai: INFO
+    org.springframework.boot.autoconfigure: INFO
+    # SimpleLoggerAdvisor 의 요청·응답 로그를 보려면 DEBUG 로 올린다(개발 환경에서만).
+    org.springframework.ai.chat.client.advisor: INFO
+
+app:
+  ai:
+    # 운영에서는 primary와 다른 모델명으로 설정할 수 있다.
+    fallback-model: ${FALLBACK_MODEL:gpt-4o-mini}

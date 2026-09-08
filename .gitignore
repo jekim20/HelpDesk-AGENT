@@ -13,3 +13,4 @@ __pycache__/
 # VS Code — 팀 공통 설정(settings·extensions·launch·tasks)은 커밋한다
 .vscode/*.local.json
 .DS_Store
+.vscode/

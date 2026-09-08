@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -25,15 +26,16 @@ class HelpDeskServiceTest {
                 .maxMessages(20)
                 .build();
         tickets = new TicketRepository();
+        ToolInvocationTracker invocationTracker = new ToolInvocationTracker();
         service = new HelpDeskService(
                 mock(ChatClient.class),
                 mock(ChatClient.class),
                 memory,
                 mock(VectorStore.class),
-                new AccessTools(new AccessRepository()),
-                new TicketTools(tickets),
+                new AccessTools(new AccessRepository(), invocationTracker),
+                new TicketTools(tickets, invocationTracker),
                 new ModelFallbackExecutor(),
-                new ToolInvocationTracker(),
+                invocationTracker,
                 new UserInputSafetyAdvisor());
     }
 
@@ -65,6 +67,37 @@ class HelpDeskServiceTest {
         assertThat(result.answer()).contains("PENDING").doesNotContain("APPROVED");
         assertThat(tickets.findAll()).singleElement()
                 .satisfies(ticket -> assertThat(ticket.status()).isEqualTo("PENDING"));
+    }
+
+    @ParameterizedTest
+    @CsvSource(value = {
+            "DEV_DB 권한 신청해줘.|ACCESS_REQUEST|DEV_DB",
+            "PROD_DB 권한 신청해줘. 운영 장애 대응 업무 때문이야.|ACCESS_REQUEST|PROD_DB",
+            "VPN 접속 장애가 발생했어. 장애 접수해줘.|INCIDENT|VPN",
+            "장애 대응 업무 때문에 DEV_DB 권한이 필요해. 신청해줘.|ACCESS_REQUEST|DEV_DB"
+    }, delimiter = '|')
+    void 티켓종류는_사유의_키워드보다_요청행동을_우선한다(
+            String question, TicketRepository.TicketType expectedType, String expectedResource) {
+        service.chat(question, "ticket-type", "user1", false);
+
+        assertThat(tickets.findAll()).singleElement().satisfies(ticket -> {
+            assertThat(ticket.type()).isEqualTo(expectedType);
+            assertThat(ticket.resource()).isEqualTo(expectedResource);
+            assertThat(ticket.status()).isEqualTo("PENDING");
+        });
+    }
+
+    @Test
+    void 권한조회_후속신청도_이전_resource와_ACCESS_REQUEST를_유지한다() {
+        service.chat("내 PROD_DB 권한 상태 알려줘.", "ticket-memory", "user1", false);
+        service.chat("그 권한 신청해줘. 운영 장애 대응 업무 때문이야.",
+                "ticket-memory", "user1", false);
+
+        assertThat(tickets.findAll()).singleElement().satisfies(ticket -> {
+            assertThat(ticket.type()).isEqualTo(TicketRepository.TicketType.ACCESS_REQUEST);
+            assertThat(ticket.resource()).isEqualTo("PROD_DB");
+            assertThat(ticket.status()).isEqualTo("PENDING");
+        });
     }
 
     @Test

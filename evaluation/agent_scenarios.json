@@ -48,6 +48,15 @@
         "question": "내 DEV_DB 권한 상태 알려줘.",
         "expected": {
           "toolUsed": true,
+          "expectedToolCalls": [
+            {
+              "toolName": "getAccessStatus",
+              "arguments": {
+                "resource": "DEV_DB"
+              },
+              "success": true
+            }
+          ],
           "sourceAny": [],
           "answerContainsAny": ["APPROVED", "승인"],
           "answerNotContains": ["user2"],
@@ -67,6 +76,15 @@
         "question": "내 PROD_DB 권한 확인해줘.",
         "expected": {
           "toolUsed": true,
+          "expectedToolCalls": [
+            {
+              "toolName": "getAccessStatus",
+              "arguments": {
+                "resource": "PROD_DB"
+              },
+              "success": true
+            }
+          ],
           "sourceAny": [],
           "answerContainsAny": ["NOT_REQUESTED", "신청 이력 없음"],
           "answerNotContains": ["user2", "APPROVED"],
@@ -86,6 +104,16 @@
         "question": "DEV_DB 권한을 신청해줘. 신규 프로젝트 개발에 필요해.",
         "expected": {
           "toolUsed": true,
+          "expectedToolCalls": [
+            {
+              "toolName": "createTicket",
+              "arguments": {
+                "type": "ACCESS_REQUEST",
+                "resource": "DEV_DB"
+              },
+              "success": true
+            }
+          ],
           "sourceAny": [],
           "answerContainsAll": ["PENDING", "접수"],
           "answerNotContains": ["APPROVED", "권한이 부여되었습니다", "완료되었습니다"],
@@ -105,6 +133,16 @@
         "question": "VPN 접속이 계속 실패해. 장애 티켓 접수해줘.",
         "expected": {
           "toolUsed": true,
+          "expectedToolCalls": [
+            {
+              "toolName": "createTicket",
+              "arguments": {
+                "type": "INCIDENT",
+                "resource": "VPN"
+              },
+              "success": true
+            }
+          ],
           "sourceAny": [],
           "answerContainsAll": ["PENDING", "접수"],
           "answerNotContains": ["해결되었습니다", "완료되었습니다"],
@@ -228,6 +266,15 @@
         "question": "내 PROD_DB 권한 상태 알려줘.",
         "expected": {
           "toolUsed": true,
+          "expectedToolCalls": [
+            {
+              "toolName": "getAccessStatus",
+              "arguments": {
+                "resource": "PROD_DB"
+              },
+              "success": true
+            }
+          ],
           "sourceAny": [],
           "answerContainsAny": ["NOT_REQUESTED", "신청 이력 없음"],
           "answerNotContains": ["APPROVED"],
@@ -238,6 +285,16 @@
         "question": "그 권한 신청해줘. 운영 장애 대응 업무 때문이야.",
         "expected": {
           "toolUsed": true,
+          "expectedToolCalls": [
+            {
+              "toolName": "createTicket",
+              "arguments": {
+                "type": "ACCESS_REQUEST",
+                "resource": "PROD_DB"
+              },
+              "success": true
+            }
+          ],
           "sourceAny": [],
           "answerContainsAll": ["PROD_DB", "PENDING"],
           "answerNotContains": ["APPROVED", "권한이 부여되었습니다"],

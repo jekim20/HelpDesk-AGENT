@@ -85,6 +85,94 @@ def contains(haystack: str, needle: str) -> bool:
     return needle.casefold() in haystack.casefold()
 
 
+def is_non_negative_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0
+
+
+def evaluate_tool_calls(expected: dict[str, Any], body: dict[str, Any]) -> dict[str, Any] | None:
+    expected_calls = expected.get("expectedToolCalls")
+    if expected_calls is None:
+        return None
+
+    failures: list[str] = []
+    raw_actual_calls = body.get("toolCalls")
+    actual_calls = raw_actual_calls if isinstance(raw_actual_calls, list) else []
+    actual_is_list = isinstance(raw_actual_calls, list)
+
+    selection_passed = actual_is_list and len(actual_calls) == len(expected_calls)
+    if not actual_is_list:
+        failures.append(f"toolCalls: expected list, actual {raw_actual_calls}")
+    elif len(actual_calls) != len(expected_calls):
+        failures.append(
+            f"toolCalls count: expected {len(expected_calls)}, actual {len(actual_calls)}"
+        )
+
+    argument_passed = 0
+    execution_passed = 0
+    latency_passed = 0
+
+    for index, expected_call in enumerate(expected_calls):
+        actual_call = actual_calls[index] if index < len(actual_calls) else None
+        actual_is_object = isinstance(actual_call, dict)
+        if not actual_is_object:
+            selection_passed = False
+            failures.append(f"toolCalls[{index}]: expected object, actual {actual_call}")
+            actual_call = {}
+
+        expected_name = expected_call.get("toolName")
+        actual_name = actual_call.get("toolName")
+        name_matches = actual_is_object and actual_name == expected_name
+        if not name_matches:
+            selection_passed = False
+            failures.append(
+                f"toolCalls[{index}].toolName: expected {expected_name}, actual {actual_name}"
+            )
+
+        expected_arguments = expected_call.get("arguments") or {}
+        actual_arguments = actual_call.get("toolArguments")
+        arguments_match = (
+            name_matches
+            and isinstance(actual_arguments, dict)
+            and all(actual_arguments.get(key) == value for key, value in expected_arguments.items())
+        )
+        if arguments_match:
+            argument_passed += 1
+        else:
+            failures.append(
+                f"toolCalls[{index}].toolArguments: expected subset "
+                f"{expected_arguments}, actual {actual_arguments}"
+            )
+
+        expected_success = expected_call.get("success", True)
+        actual_success = actual_call.get("success")
+        execution_matches = name_matches and actual_success is expected_success
+        if execution_matches:
+            execution_passed += 1
+        else:
+            failures.append(
+                f"toolCalls[{index}].success: expected {expected_success}, actual {actual_success}"
+            )
+
+        latency_ms = actual_call.get("latencyMs")
+        if is_non_negative_number(latency_ms):
+            latency_passed += 1
+        else:
+            failures.append(
+                f"toolCalls[{index}].latencyMs: expected non-negative number, actual {latency_ms}"
+            )
+
+    return {
+        "selectionPassed": selection_passed,
+        "argumentPassed": argument_passed,
+        "argumentTotal": len(expected_calls),
+        "executionPassed": execution_passed,
+        "executionTotal": len(expected_calls),
+        "latencyPassed": latency_passed,
+        "latencyTotal": len(expected_calls),
+        "failures": failures,
+    }
+
+
 def evaluate_turn(expected: dict[str, Any], status: int, body: dict[str, Any]) -> list[str]:
     failures: list[str] = []
     answer = str(body.get("answer", ""))
@@ -97,6 +185,15 @@ def evaluate_turn(expected: dict[str, Any], status: int, body: dict[str, Any]) -
     for field in ("toolUsed", "fallbackUsed"):
         if field in expected and body.get(field) is not expected[field]:
             failures.append(f"{field}: expected {expected[field]}, actual {body.get(field)}")
+
+    if expected.get("toolUsed") is False:
+        actual_calls = body.get("toolCalls")
+        if not isinstance(actual_calls, list) or actual_calls:
+            failures.append(f"toolCalls: expected empty list, actual {actual_calls}")
+
+    tool_evaluation = evaluate_tool_calls(expected, body)
+    if tool_evaluation is not None:
+        failures.extend(tool_evaluation["failures"])
 
     if "sourceAny" in expected:
         wanted_sources = [str(source) for source in expected["sourceAny"]]
@@ -141,6 +238,16 @@ def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
     safety = [scenario for scenario in results if scenario["category"] == "SAFETY"]
     multi_turn = [scenario for scenario in results if len(scenario["turns"]) > 1]
     latencies = [turn["latencyMs"] for turn in turns]
+    tool_evaluations = [
+        evaluation
+        for turn in turns
+        if (evaluation := evaluate_tool_calls(turn["expected"], turn["actual"])) is not None
+    ]
+    tool_selection_passed = sum(evaluation["selectionPassed"] for evaluation in tool_evaluations)
+    tool_argument_passed = sum(evaluation["argumentPassed"] for evaluation in tool_evaluations)
+    tool_argument_total = sum(evaluation["argumentTotal"] for evaluation in tool_evaluations)
+    tool_execution_passed = sum(evaluation["executionPassed"] for evaluation in tool_evaluations)
+    tool_execution_total = sum(evaluation["executionTotal"] for evaluation in tool_evaluations)
 
     return {
         "scenarioCount": len(results),
@@ -150,6 +257,15 @@ def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
             sum(turn["actual"].get("toolUsed") is turn["expected"]["toolUsed"] for turn in tool_turns),
             len(tool_turns),
         ),
+        "toolSelectionPassed": tool_selection_passed,
+        "toolSelectionTotal": len(tool_evaluations),
+        "toolSelectionAccuracy": percentage(tool_selection_passed, len(tool_evaluations)),
+        "toolArgumentPassed": tool_argument_passed,
+        "toolArgumentTotal": tool_argument_total,
+        "toolArgumentAccuracy": percentage(tool_argument_passed, tool_argument_total),
+        "toolExecutionPassed": tool_execution_passed,
+        "toolExecutionTotal": tool_execution_total,
+        "toolExecutionSuccessRate": percentage(tool_execution_passed, tool_execution_total),
         "ragSourceHitRate": percentage(
             sum(
                 any(
@@ -179,6 +295,12 @@ def render_markdown(report: dict[str, Any]) -> str:
         f"- Passed: {summary['passed']}",
         f"- Task Success Rate: {summary['taskSuccessRate']}%",
         f"- Tool Decision Accuracy: {summary['toolDecisionAccuracy']}%",
+        f"- Tool Selection Accuracy: {summary['toolSelectionPassed']}/"
+        f"{summary['toolSelectionTotal']} ({summary['toolSelectionAccuracy']}%)",
+        f"- Tool Argument Accuracy: {summary['toolArgumentPassed']}/"
+        f"{summary['toolArgumentTotal']} ({summary['toolArgumentAccuracy']}%)",
+        f"- Tool Execution Success Rate: {summary['toolExecutionPassed']}/"
+        f"{summary['toolExecutionTotal']} ({summary['toolExecutionSuccessRate']}%)",
         f"- RAG Source Hit Rate: {summary['ragSourceHitRate']}%",
         f"- Safety Pass Rate: {summary['safetyPassRate']}%",
         f"- Multi-turn Pass Rate: {summary['multiTurnPassRate']}%",
@@ -277,6 +399,18 @@ def main() -> int:
     print(f"Passed: {summary['passed']}")
     print(f"Task Success Rate: {summary['taskSuccessRate']}%")
     print(f"Tool Decision Accuracy: {summary['toolDecisionAccuracy']}%")
+    print(
+        f"Tool Selection Accuracy: {summary['toolSelectionPassed']}/"
+        f"{summary['toolSelectionTotal']} ({summary['toolSelectionAccuracy']}%)"
+    )
+    print(
+        f"Tool Argument Accuracy: {summary['toolArgumentPassed']}/"
+        f"{summary['toolArgumentTotal']} ({summary['toolArgumentAccuracy']}%)"
+    )
+    print(
+        f"Tool Execution Success Rate: {summary['toolExecutionPassed']}/"
+        f"{summary['toolExecutionTotal']} ({summary['toolExecutionSuccessRate']}%)"
+    )
     print(f"RAG Source Hit Rate: {summary['ragSourceHitRate']}%")
     print(f"Safety Pass Rate: {summary['safetyPassRate']}%")
     print(f"Multi-turn Pass Rate: {summary['multiTurnPassRate']}%")

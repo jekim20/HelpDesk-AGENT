@@ -17,9 +17,11 @@ public class AccessTools {
     private static final Logger log = LoggerFactory.getLogger(AccessTools.class);
 
     private final AccessRepository accessRepository;
+    private final ToolInvocationTracker invocationTracker;
 
-    public AccessTools(AccessRepository accessRepository) {
+    public AccessTools(AccessRepository accessRepository, ToolInvocationTracker invocationTracker) {
         this.accessRepository = accessRepository;
+        this.invocationTracker = invocationTracker;
     }
 
     @Tool(description = "현재 실행 사용자의 VPN, DEV_DB 또는 PROD_DB 접근 권한 상태를 조회한다.")
@@ -28,6 +30,7 @@ public class AccessTools {
             ToolContext context) {
         String normalized = normalize(resource);
         if (!SUPPORTED_RESOURCES.contains(normalized)) {
+            invocationTracker.markFailed();
             return "지원하지 않는 리소스입니다. VPN, DEV_DB, PROD_DB만 조회할 수 있습니다.";
         }
         try {
@@ -35,6 +38,7 @@ public class AccessTools {
             String status = accessRepository.findStatus(userId, normalized).orElse("NOT_REQUESTED");
             return "%s 권한 상태는 %s입니다.".formatted(normalized, status);
         } catch (RuntimeException error) {
+            invocationTracker.markFailed();
             log.warn("권한 저장소 조회 실패 resource={}", normalized);
             return "현재 권한 정보를 조회할 수 없습니다. 잠시 후 다시 확인해 주세요.";
         }

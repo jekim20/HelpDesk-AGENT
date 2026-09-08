@@ -16,7 +16,7 @@ class DevDeskToolsTest {
 
     @Test
     void 본인_권한만_ToolContext로_조회한다() {
-        AccessTools tools = new AccessTools(new AccessRepository());
+        AccessTools tools = new AccessTools(new AccessRepository(), new ToolInvocationTracker());
 
         assertThat(tools.getAccessStatus("DEV_DB", context("user1")))
                 .contains("DEV_DB", "APPROVED")
@@ -28,7 +28,7 @@ class DevDeskToolsTest {
 
     @Test
     void 지원하지_않는_권한을_임의_리소스로_바꾸지_않는다() {
-        AccessTools tools = new AccessTools(new AccessRepository());
+        AccessTools tools = new AccessTools(new AccessRepository(), new ToolInvocationTracker());
 
         assertThat(tools.getAccessStatus("PRINTER", context("user1")))
                 .contains("지원하지 않는")
@@ -41,7 +41,8 @@ class DevDeskToolsTest {
         when(repository.findStatus("user1", "DEV_DB"))
                 .thenThrow(new RuntimeException("db-host=internal.example secret-detail"));
 
-        String result = new AccessTools(repository).getAccessStatus("DEV_DB", context("user1"));
+        String result = new AccessTools(repository, new ToolInvocationTracker())
+                .getAccessStatus("DEV_DB", context("user1"));
 
         assertThat(result)
                 .contains("조회할 수 없습니다")
@@ -51,7 +52,7 @@ class DevDeskToolsTest {
     @Test
     void 쓰기_Tool은_PENDING_티켓만_만든다() {
         TicketRepository repository = new TicketRepository();
-        TicketTools tools = new TicketTools(repository);
+        TicketTools tools = new TicketTools(repository, new ToolInvocationTracker());
 
         String result = tools.createTicket(
                 TicketType.ACCESS_REQUEST, "DEV_DB", "신규 프로젝트", context("user1"));
@@ -70,7 +71,7 @@ class DevDeskToolsTest {
         when(repository.create(any(), any(), any(), any()))
                 .thenThrow(new RuntimeException("itsm-token=secret-detail"));
 
-        String result = new TicketTools(repository).createTicket(
+        String result = new TicketTools(repository, new ToolInvocationTracker()).createTicket(
                 TicketType.INCIDENT, "VPN", "접속 실패", context("user1"));
 
         assertThat(result)

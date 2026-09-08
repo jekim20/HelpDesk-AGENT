@@ -72,9 +72,23 @@ curl -X POST http://localhost:8080/api/chat \
   "sessionId": "demo",
   "sources": [],
   "toolUsed": true,
+  "toolCalls": [
+    {
+      "toolName": "getAccessStatus",
+      "toolArguments": {
+        "resource": "DEV_DB"
+      },
+      "toolResult": "DEV_DB 권한 상태는 APPROVED입니다.",
+      "success": true,
+      "latencyMs": 1
+    }
+  ],
   "fallbackUsed": false
 }
 ```
+
+`toolCalls`는 한 요청에서 실행된 Tool을 순서대로 담는다. 기존 `toolUsed`는 하위 호환을 위해 유지한다.
+Tool argument는 allowlist로 제한하며 `ToolContext`, `userId`, 티켓의 자유 텍스트 `reason`은 포함하지 않는다.
 
 주요 endpoint:
 
@@ -86,6 +100,7 @@ curl -X POST http://localhost:8080/api/chat \
 | `GET`  | `/api/admin/tickets`                    | 인메모리 PENDING 티켓 확인 |
 | `GET`  | `/api/metrics`                          | token 및 모델 호출 누적값  |
 | `GET`  | `/actuator/metrics/ai.latency`          | 모델 호출 지연 시간 지표   |
+| `GET`  | `/actuator/metrics/ai.tool.latency`     | Tool 호출 지연 시간 지표   |
 | `GET`  | `/actuator/prometheus`                  | Prometheus 형식 지표       |
 
 ## 테스트
@@ -117,10 +132,23 @@ python3 scripts/evaluate-agent.py \
 
 - Task Success Rate
 - Tool Decision Accuracy
+- Tool Selection Accuracy
+- Tool Argument Accuracy
+- Tool Execution Success Rate
 - RAG Source Hit Rate
 - Safety Pass Rate
 - Multi-turn Pass Rate
 - 요청별 latency와 nearest-rank P95
+
+`Tool Decision Accuracy`는 Tool 사용 여부를, `Tool Selection Accuracy`는 기대 Tool의 개수·순서·이름을 평가한다.
+`Tool Argument Accuracy`는 scenario에 정의한 핵심 argument만 비교하고, `Tool Execution Success Rate`는 정상 Tool scenario의 업무 성공 여부를 평가한다.
+이 지표들은 현재 정의된 Agent evaluation set에 대한 결과이며 모든 요청에 대한 일반 정확도를 의미하지 않는다.
+
+Evaluator 비교 로직은 외부 API 없이 실행할 수 있다.
+
+```bash
+python3 -m unittest scripts/test_evaluate_agent.py
+```
 
 서버 연결과 문서 인제스트를 정상적으로 마친 실행은 시나리오 성공·실패 결과를 `evaluation/results/latest.json`과 `latest.md`에 기록한다. 서버 연결 실패나 인증 실패 같은 환경 오류가 발생하면 기존 결과를 덮어쓰지 않는다.
 

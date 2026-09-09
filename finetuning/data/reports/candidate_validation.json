@@ -1,0 +1,922 @@
+{
+  "status": "PASS",
+  "total": 126,
+  "passed": 109,
+  "warnings": 5,
+  "failed": 0,
+  "machineValidated": 114,
+  "machineRejected": 12,
+  "blockingFailures": 0,
+  "generationSubtypeCounts": {
+    "multi_resource_howto": 5,
+    "multi_resource_write": 5,
+    "single_resource_howto": 5,
+    "single_resource_write": 5
+  },
+  "nearDuplicateThreshold": 0.9,
+  "exactDuplicates": [
+    {
+      "left": "AUG_G15_005_0001",
+      "right": "AUG_G15_010_0001"
+    }
+  ],
+  "normalizedDuplicates": [],
+  "nearDuplicates": [
+    {
+      "left": "AUG_G15_002_0001",
+      "right": "AUG_G15_003_0001",
+      "similarity": 0.9074
+    },
+    {
+      "left": "AUG_G15_002_0001",
+      "right": "AUG_G15_005_0001",
+      "similarity": 0.9174
+    },
+    {
+      "left": "AUG_G15_002_0001",
+      "right": "AUG_G15_010_0001",
+      "similarity": 0.9174
+    },
+    {
+      "left": "AUG_G15_002_0003",
+      "right": "AUG_G15_004_0002",
+      "similarity": 0.9135
+    },
+    {
+      "left": "AUG_G15_002_0003",
+      "right": "AUG_G15_006_0002",
+      "similarity": 0.9231
+    },
+    {
+      "left": "AUG_G15_002_0007",
+      "right": "AUG_G15_003_0001",
+      "similarity": 0.9423
+    },
+    {
+      "left": "AUG_G15_002_0007",
+      "right": "AUG_G15_005_0001",
+      "similarity": 0.9524
+    },
+    {
+      "left": "AUG_G15_002_0007",
+      "right": "AUG_G15_010_0001",
+      "similarity": 0.9524
+    },
+    {
+      "left": "AUG_G15_003_0001",
+      "right": "AUG_G15_005_0001",
+      "similarity": 0.9907
+    },
+    {
+      "left": "AUG_G15_003_0001",
+      "right": "AUG_G15_010_0001",
+      "similarity": 0.9907
+    }
+  ],
+  "globalErrors": [],
+  "results": [
+    {
+      "id": "AUG_G01_001_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G01_001_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G01_001_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G01_001_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G01_001_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G01_002_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G01_002_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G01_002_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G01_002_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G01_002_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_001_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_001_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_001_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_001_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_001_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_001_0006",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_001_0007",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_001_0008",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_001_0009",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_001_0010",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_003_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_003_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_003_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_003_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_003_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_003_0006",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_003_0007",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_003_0008",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_003_0009",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_003_0010",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_004_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_004_0002",
+      "status": "MACHINE_REJECTED",
+      "failures": [
+        "AUG_G06_004_0002: conversation resource DEV_DB does not match target resource PROD_DB"
+      ],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_004_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_004_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_004_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_004_0006",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_004_0007",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_004_0008",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_004_0009",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_004_0010",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_005_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_005_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_005_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_005_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_005_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_005_0006",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_005_0007",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_005_0008",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_005_0009",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G06_005_0010",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G10_001_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G10_001_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G10_001_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G10_001_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G10_001_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G10_002_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G10_002_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G10_002_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G10_002_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G10_002_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G10_003_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G10_003_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G10_003_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G10_003_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G10_003_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_002_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_002_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_002_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_002_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_002_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G12_001_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G12_001_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G12_001_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G12_001_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G12_001_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G12_002_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G12_002_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G12_002_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G12_002_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G12_002_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_001_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_001_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_001_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_001_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_001_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_001_0006",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_001_0007",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_001_0008",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_001_0009",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_001_0010",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_002_0001",
+      "status": "WARN_NEAR_DUPLICATE",
+      "failures": [],
+      "warnings": [
+        "near duplicate with AUG_G15_003_0001: 0.9074",
+        "high sibling similarity for S043",
+        "near duplicate with AUG_G15_005_0001: 0.9174",
+        "near duplicate with AUG_G15_010_0001: 0.9174"
+      ]
+    },
+    {
+      "id": "AUG_G15_002_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_002_0003",
+      "status": "WARN_NEAR_DUPLICATE",
+      "failures": [],
+      "warnings": [
+        "near duplicate with AUG_G15_004_0002: 0.9135",
+        "high sibling similarity for S045",
+        "near duplicate with AUG_G15_006_0002: 0.9231"
+      ]
+    },
+    {
+      "id": "AUG_G15_002_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_002_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_002_0006",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_002_0007",
+      "status": "WARN_NEAR_DUPLICATE",
+      "failures": [],
+      "warnings": [
+        "near duplicate with AUG_G15_003_0001: 0.9423",
+        "high sibling similarity for S043",
+        "near duplicate with AUG_G15_005_0001: 0.9524",
+        "near duplicate with AUG_G15_010_0001: 0.9524"
+      ]
+    },
+    {
+      "id": "AUG_G15_002_0008",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_002_0009",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_002_0010",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_003_0001",
+      "status": "WARN_NEAR_DUPLICATE",
+      "failures": [],
+      "warnings": [
+        "near duplicate with AUG_G15_002_0001: 0.9074",
+        "high sibling similarity for S043",
+        "near duplicate with AUG_G15_002_0007: 0.9423",
+        "near duplicate with AUG_G15_005_0001: 0.9907",
+        "near duplicate with AUG_G15_010_0001: 0.9907"
+      ]
+    },
+    {
+      "id": "AUG_G15_003_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_004_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_004_0002",
+      "status": "WARN_NEAR_DUPLICATE",
+      "failures": [],
+      "warnings": [
+        "near duplicate with AUG_G15_002_0003: 0.9135",
+        "high sibling similarity for S045"
+      ]
+    },
+    {
+      "id": "AUG_G15_005_0001",
+      "status": "MACHINE_REJECTED",
+      "failures": [
+        "exact duplicate text with AUG_G15_010_0001"
+      ],
+      "warnings": [
+        "near duplicate with AUG_G15_002_0001: 0.9174",
+        "high sibling similarity for S043",
+        "near duplicate with AUG_G15_002_0007: 0.9524",
+        "near duplicate with AUG_G15_003_0001: 0.9907"
+      ]
+    },
+    {
+      "id": "AUG_G15_005_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_006_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_006_0002",
+      "status": "MACHINE_REJECTED",
+      "failures": [
+        "AUG_G15_006_0002: single_resource_write requires exactly 1 supported resource, found ['DEV_DB', 'PROD_DB']"
+      ],
+      "warnings": [
+        "near duplicate with AUG_G15_002_0003: 0.9231",
+        "high sibling similarity for S045"
+      ]
+    },
+    {
+      "id": "AUG_G15_007_0001",
+      "status": "MACHINE_REJECTED",
+      "failures": [
+        "AUG_G15_007_0001: multi_resource_write latest explicit resource DEV_DB does not match target resource PROD_DB"
+      ],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_007_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_008_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_008_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_009_0001",
+      "status": "MACHINE_REJECTED",
+      "failures": [
+        "AUG_G15_009_0001: multi_resource_howto requires at least 5 conversation turns",
+        "AUG_G15_009_0001: multi_resource_howto first user turn must not list multiple supported resources",
+        "AUG_G15_009_0001: multi_resource_howto resources must appear sequentially in different user turns"
+      ],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_009_0002",
+      "status": "MACHINE_REJECTED",
+      "failures": [
+        "AUG_G15_009_0002: multi_resource_howto requires at least 5 conversation turns",
+        "AUG_G15_009_0002: multi_resource_howto first user turn must not list multiple supported resources",
+        "AUG_G15_009_0002: multi_resource_howto resources must appear sequentially in different user turns"
+      ],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_010_0001",
+      "status": "MACHINE_REJECTED",
+      "failures": [
+        "exact duplicate text with AUG_G15_005_0001"
+      ],
+      "warnings": [
+        "near duplicate with AUG_G15_002_0001: 0.9174",
+        "high sibling similarity for S043",
+        "near duplicate with AUG_G15_002_0007: 0.9524",
+        "near duplicate with AUG_G15_003_0001: 0.9907"
+      ]
+    },
+    {
+      "id": "AUG_G15_010_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_011_0001",
+      "status": "MACHINE_REJECTED",
+      "failures": [
+        "AUG_G15_011_0001: multi_resource_write latest explicit resource VPN does not match target resource PROD_DB"
+      ],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_011_0002",
+      "status": "MACHINE_REJECTED",
+      "failures": [
+        "AUG_G15_011_0002: multi_resource_write final user turn must not repeat a supported resource",
+        "AUG_G15_011_0002: multi_resource_write latest explicit resource DEV_DB does not match target resource PROD_DB"
+      ],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_012_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_012_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_013_0001",
+      "status": "MACHINE_REJECTED",
+      "failures": [
+        "AUG_G15_013_0001: multi_resource_howto requires at least 5 conversation turns",
+        "AUG_G15_013_0001: multi_resource_howto final user turn must not repeat a supported resource"
+      ],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_013_0002",
+      "status": "MACHINE_REJECTED",
+      "failures": [
+        "AUG_G15_013_0002: multi_resource_howto requires at least 5 conversation turns",
+        "AUG_G15_013_0002: multi_resource_howto final user turn must not repeat a supported resource"
+      ],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_018_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_019_0001",
+      "status": "MACHINE_REJECTED",
+      "failures": [
+        "AUG_G15_019_0001: multi_resource_write final user turn must not repeat a supported resource"
+      ],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_020_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_021_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    }
+  ],
+  "machineValidatedCandidateCount": 114,
+  "approvedTrainingExportCount": 0,
+  "trainingModelInputCount": 0,
+  "pilotGenerated": 126,
+  "pilotApproved": 52,
+  "productionGenerated": 0,
+  "productionApproved": 0,
+  "productionTarget": 1000,
+  "productionRemaining": 1000,
+  "dryRunExcludedFromApproval": 35,
+  "externalUnreviewed": 0,
+  "reviewStatusCounts": {
+    "DROP": 17,
+    "KEEP": 52,
+    "REWRITE": 22,
+    "UNREVIEWED": 35
+  },
+  "resourceConsistencyGroups": [
+    "G06"
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "near_duplicate_threshold": 0.9,
+  "single_target_resource_groups": ["G06"]
+}

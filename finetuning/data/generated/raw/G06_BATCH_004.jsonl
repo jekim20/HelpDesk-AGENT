@@ -1,0 +1,10 @@
+{"id": "S019", "source_seed_id": "S016", "generation_group_id": "G06", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "PROD_DB 로그 분석 중인데 접근 권한이 없어. 권한 신청해줘."}]}
+{"id": "S020", "source_seed_id": "S016", "generation_group_id": "G06", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "접속 오류로 인해 DEV_DB 권한이 필요해. 접근 권한 요청해줘."}]}
+{"id": "S021", "source_seed_id": "S017", "generation_group_id": "G06", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "장애 발생으로 VPN 접근이 필요해. 요청해줘."}]}
+{"id": "S022", "source_seed_id": "S018", "generation_group_id": "G06", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "DEV_DB 접근 실패로 인해 권한 요청이 필요해. 신청해줘."}]}
+{"id": "S023", "source_seed_id": "S016", "generation_group_id": "G06", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "PROD_DB 문제를 재현해야 해서 접근 요청 좀 해줘."}]}
+{"id": "S024", "source_seed_id": "S017", "generation_group_id": "G06", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "VPN 장애로 인해 접근 권한 요청해줘."}]}
+{"id": "S025", "source_seed_id": "S018", "generation_group_id": "G06", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "DEV_DB 연결 이슈가 생겨서 권한 신청할게."}]}
+{"id": "S026", "source_seed_id": "S016", "generation_group_id": "G06", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "PROD_DB 오류 확인을 위해 권한 요청해줘."}]}
+{"id": "S027", "source_seed_id": "S017", "generation_group_id": "G06", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "VPN 접속 문제로 권한 신청해줄 수 있어?"}]}
+{"id": "S028", "source_seed_id": "S018", "generation_group_id": "G06", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "DEV_DB 문제 해결을 위해 접근 권한 요청해줘."}]}

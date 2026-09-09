@@ -1,0 +1,2 @@
+{"id":"1","source_seed_id":"S033","generation_group_id":"G15","generation_category":"NO_TOOL","intent":"NO_TOOL","difficulty":"easy","conversation":"사용자가 DEV_DB에 접근 가능한지 확인해보세요.\n\nDEV_DB 접근 상태가 궁금해요. 어떻게 확인하나요?"}  
+{"id":"2","source_seed_id":"S034","generation_group_id":"G15","generation_category":"NO_TOOL","intent":"NO_TOOL","difficulty":"easy","conversation":"PROD_DB에 대한 상태를 알고 싶어요.\n\nPROD_DB 접근 절차는 어떻게 되나요?"}

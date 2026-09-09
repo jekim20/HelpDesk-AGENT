@@ -1,0 +1,5 @@
+{"id": "G01-001", "source_seed_id": "S001", "generation_group_id": "G01", "difficulty": ["DIRECT"], "conversation": [{"role": "user", "content": "내 DEV_DB에 접근할 수 있는지 확인해줘."}]}
+{"id": "G01-002", "source_seed_id": "S002", "generation_group_id": "G01", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "PROD_DB 권한이 지금 있는지 봐줘."}]}
+{"id": "G01-003", "source_seed_id": "S003", "generation_group_id": "G01", "difficulty": ["DIRECT"], "conversation": [{"role": "user", "content": "VPN에 접근할 수 있는 상태인지 확인해줘."}]}
+{"id": "G01-004", "source_seed_id": "S004", "generation_group_id": "G01", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "개발 DB의 접근 권한이 있는지 알고 싶어."}]}
+{"id": "G01-005", "source_seed_id": "S005", "generation_group_id": "G01", "difficulty": ["DIRECT"], "conversation": [{"role": "user", "content": "운영 DB를 지금 사용해도 되는지 확인해줄래?"}]}

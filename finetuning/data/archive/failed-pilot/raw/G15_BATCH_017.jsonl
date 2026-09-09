@@ -1,0 +1,2 @@
+{"id": "1", "source_seed_id": "S033", "generation_group_id": "G15", "generation_category": "NO_TOOL", "intent": "NO_TOOL", "difficulty": "medium", "conversation": "A: DEV_DB에 접근하려면 어떻게 해야 하나요?\nB: DEV_DB에 대한 접근 요청을 하시면 됩니다.\nA: 그럼 PROD_DB는 접근 방법이 어떻게 되죠?"}
+{"id": "2", "source_seed_id": "S034", "generation_group_id": "G15", "generation_category": "NO_TOOL", "intent": "NO_TOOL", "difficulty": "medium", "conversation": "A: PROD_DB에 대한 접근 절차가 궁금해요.\nB: PROD_DB에 접근하려면 요청을 해야 해요.\nA: VPN은 어떻게 신청하나요?"}

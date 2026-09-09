@@ -332,6 +332,11 @@ groups:
   generation_rules:
   - 항상 바로 직전 resource만 참조하는 단순 패턴으로 쏠리지 않게 한다.
   - Write subtype은 ACCESS_REQUEST, how-to subtype은 NO_TOOL target을 유지한다.
+  - Write subtype의 explicit execution request는 마지막 user turn에만 두고, 이전 user turn은 status/context로 제한한다.
+  - Write subtype의 마지막 user turn은 처음 등장하는 explicit execution request여야 한다.
+  - How-to subtype은 conversation 전체 user turn에서 실제 실행 요청을 포함하지 않는다.
+  - 모든 subtype의 assistant turn은 neutral contextual acknowledgement 또는 정보 안내만 사용한다.
+  - Assistant가 Tool을 실행했거나 접수/등록/신청/티켓 생성/처리를 실행하겠다고 약속하지 않는다.
   - 마지막 user turn만 읽어서는 정답을 확정하기 어려운 사례를 포함한다.
   - 한 batch에서 같은 conversation skeleton을 반복하지 않는다.
   - 단어 몇 개만 바꾼 sibling paraphrase를 만들지 않는다.
@@ -340,3 +345,5 @@ groups:
   - assistant history도 자연스러운 한국어와 띄어쓰기를 유지한다.
   anti_patterns:
   - 모든 예시가 PROD_DB → 그 권한 구조
+  - 마지막 user turn 전에 신청해줘/요청해줘/등록해줘/접수해줘/티켓 만들어줘 같은 실행 요구
+  - assistant가 접수할게요/등록해드릴게요/신청을 진행하겠습니다처럼 Tool 실행을 주장하거나 약속

@@ -1,17 +1,17 @@
 {
   "status": "PASS",
-  "total": 134,
-  "passed": 117,
-  "warnings": 5,
+  "total": 186,
+  "passed": 165,
+  "warnings": 9,
   "failed": 0,
-  "machineValidated": 122,
+  "machineValidated": 174,
   "machineRejected": 12,
   "blockingFailures": 0,
   "generationSubtypeCounts": {
-    "multi_resource_howto": 7,
-    "multi_resource_write": 7,
-    "single_resource_howto": 7,
-    "single_resource_write": 7
+    "multi_resource_howto": 10,
+    "multi_resource_write": 10,
+    "single_resource_howto": 10,
+    "single_resource_write": 10
   },
   "nearDuplicateThreshold": 0.9,
   "exactDuplicates": [
@@ -22,6 +22,16 @@
   ],
   "normalizedDuplicates": [],
   "nearDuplicates": [
+    {
+      "left": "AUG_G11_002_0004",
+      "right": "AUG_G11_100_0001",
+      "similarity": 0.9231
+    },
+    {
+      "left": "AUG_G11_100_0004",
+      "right": "AUG_G11_102_0002",
+      "similarity": 0.9091
+    },
     {
       "left": "AUG_G15_002_0001",
       "right": "AUG_G15_003_0001",
@@ -487,12 +497,262 @@
     },
     {
       "id": "AUG_G11_002_0004",
+      "status": "WARN_NEAR_DUPLICATE",
+      "failures": [],
+      "warnings": [
+        "near duplicate with AUG_G11_100_0001: 0.9231"
+      ]
+    },
+    {
+      "id": "AUG_G11_002_0005",
       "status": "PASS",
       "failures": [],
       "warnings": []
     },
     {
-      "id": "AUG_G11_002_0005",
+      "id": "AUG_G11_100_0001",
+      "status": "WARN_NEAR_DUPLICATE",
+      "failures": [],
+      "warnings": [
+        "near duplicate with AUG_G11_002_0004: 0.9231"
+      ]
+    },
+    {
+      "id": "AUG_G11_100_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_100_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_100_0004",
+      "status": "WARN_NEAR_DUPLICATE",
+      "failures": [],
+      "warnings": [
+        "near duplicate with AUG_G11_102_0002: 0.9091",
+        "high sibling similarity for S057"
+      ]
+    },
+    {
+      "id": "AUG_G11_100_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_100_0006",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_100_0007",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_100_0008",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_100_0009",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_100_0010",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_101_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_101_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_101_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_101_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_101_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_101_0006",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_101_0007",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_101_0008",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_101_0009",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_101_0010",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_101_0011",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_101_0012",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_101_0013",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_101_0014",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_101_0015",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_102_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_102_0002",
+      "status": "WARN_NEAR_DUPLICATE",
+      "failures": [],
+      "warnings": [
+        "near duplicate with AUG_G11_100_0004: 0.9091",
+        "high sibling similarity for S057"
+      ]
+    },
+    {
+      "id": "AUG_G11_102_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_102_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_102_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_102_0006",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_102_0007",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_102_0008",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_102_0009",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_102_0010",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_102_0011",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_102_0012",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_102_0013",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_102_0014",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G11_102_0015",
       "status": "PASS",
       "failures": [],
       "warnings": []
@@ -899,70 +1159,142 @@
       "warnings": []
     },
     {
-      "id": "AUG_G15_200_0001",
+      "id": "AUG_G15_100_0001",
       "status": "PASS",
       "failures": [],
       "warnings": []
     },
     {
-      "id": "AUG_G15_200_0002",
+      "id": "AUG_G15_100_0002",
       "status": "PASS",
       "failures": [],
       "warnings": []
     },
     {
-      "id": "AUG_G15_201_0001",
+      "id": "AUG_G15_100_0003",
       "status": "PASS",
       "failures": [],
       "warnings": []
     },
     {
-      "id": "AUG_G15_201_0002",
+      "id": "AUG_G15_100_0004",
       "status": "PASS",
       "failures": [],
       "warnings": []
     },
     {
-      "id": "AUG_G15_202_0001",
+      "id": "AUG_G15_100_0005",
       "status": "PASS",
       "failures": [],
       "warnings": []
     },
     {
-      "id": "AUG_G15_202_0002",
+      "id": "AUG_G15_101_0001",
       "status": "PASS",
       "failures": [],
       "warnings": []
     },
     {
-      "id": "AUG_G15_203_0001",
+      "id": "AUG_G15_101_0002",
       "status": "PASS",
       "failures": [],
       "warnings": []
     },
     {
-      "id": "AUG_G15_203_0002",
+      "id": "AUG_G15_101_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_101_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_101_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_102_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_102_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_102_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_102_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_102_0005",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_103_0001",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_103_0002",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_103_0003",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_103_0004",
+      "status": "PASS",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "AUG_G15_103_0005",
       "status": "PASS",
       "failures": [],
       "warnings": []
     }
   ],
-  "machineValidatedCandidateCount": 122,
-  "approvedTrainingExportCount": 0,
-  "trainingModelInputCount": 0,
-  "pilotGenerated": 134,
-  "pilotApproved": 58,
-  "productionGenerated": 0,
-  "productionApproved": 0,
+  "machineValidatedCandidateCount": 174,
+  "approvedTrainingExportCount": 11,
+  "trainingModelInputCount": 11,
+  "pilotGenerated": 126,
+  "pilotApproved": 52,
+  "productionGenerated": 60,
+  "productionApproved": 11,
   "productionTarget": 1000,
-  "productionRemaining": 1000,
+  "productionRemaining": 940,
   "dryRunExcludedFromApproval": 35,
-  "externalUnreviewed": 0,
+  "externalUnreviewed": 20,
   "reviewStatusCounts": {
-    "DROP": 17,
-    "KEEP": 58,
-    "REWRITE": 24,
-    "UNREVIEWED": 35
+    "DROP": 19,
+    "KEEP": 63,
+    "REWRITE": 49,
+    "UNREVIEWED": 55
   },
   "resourceConsistencyGroups": [
     "G06"

@@ -1,38 +1,38 @@
 # Dataset Analysis
 
-- Total generated: 134
-- Passed: 117
-- Warnings: 5
+- Total generated: 186
+- Passed: 165
+- Warnings: 9
 - Failed: 0
-- Machine validated: 122
+- Machine validated: 174
 - Machine rejected: 12
 - Blocking failures: 0
-- Approved training export: 0
-- Pilot generated: 134
-- Pilot approved: 58
-- Production generated: 0
-- Production approved: 0
+- Approved training export: 11
+- Pilot generated: 126
+- Pilot approved: 52
+- Production generated: 60
+- Production approved: 11
 - Production target: 1000
-- Production remaining: 1000
+- Production remaining: 940
 - Exact duplicates: 1
 - Normalized duplicates: 0
-- Near duplicates: 10
+- Near duplicates: 12
 
 ## By group
 
 - G01: 10
 - G06: 39
 - G10: 15
-- G11: 5
+- G11: 45
 - G12: 10
-- G15: 43
+- G15: 55
 
 ## By intent
 
-- ACCESS_REQUEST: 65
+- ACCESS_REQUEST: 71
 - ACCESS_STATUS: 10
-- ACCOUNT_SUPPORT: 20
-- NO_TOOL: 27
+- ACCOUNT_SUPPORT: 60
+- NO_TOOL: 33
 
 ## By difficulty
 
@@ -40,22 +40,22 @@
 - HOW_TO: 5
 - INFO_TO_ACTION_OVERRIDE: 8
 - INTENT_REASON_CONFLICT: 39
-- MULTI_TURN: 43
-- NO_TOOL_LOOKALIKE: 22
-- PARAPHRASE: 21
+- MULTI_TURN: 55
+- NO_TOOL_LOOKALIKE: 28
+- PARAPHRASE: 61
 - POLICY: 5
 
 ## By resource
 
-- ACCOUNT_SUPPORT: 20
-- DEV_DB: 20
-- PROD_DB: 41
-- VPN: 14
+- ACCOUNT_SUPPORT: 60
+- DEV_DB: 22
+- PROD_DB: 43
+- VPN: 16
 
 ## By ticket type
 
-- ACCESS_REQUEST: 65
-- ACCOUNT_SUPPORT: 20
+- ACCESS_REQUEST: 71
+- ACCOUNT_SUPPORT: 60
 
 ## By source seed
 
@@ -66,35 +66,38 @@
 - S005: 2
 - S011: 3
 - S012: 2
+- S013: 2
+- S014: 2
+- S015: 2
 - S016: 14
 - S017: 12
 - S018: 13
 - S033: 6
 - S034: 4
-- S035: 2
-- S036: 2
-- S037: 2
+- S035: 4
+- S036: 4
+- S037: 4
 - S043: 11
 - S045: 10
 - S046: 11
 - S056: 5
-- S057: 5
-- S058: 6
+- S057: 24
+- S058: 27
 - S059: 4
 
 ## By review status
 
-- DROP: 5
-- KEEP: 58
-- REWRITE: 24
-- UNREVIEWED: 35
+- DROP: 7
+- KEEP: 63
+- REWRITE: 49
+- UNREVIEWED: 55
 
 ## By generation subtype
 
-- multi_resource_howto: 7
-- multi_resource_write: 7
-- single_resource_howto: 7
-- single_resource_write: 7
+- multi_resource_howto: 10
+- multi_resource_write: 10
+- single_resource_howto: 10
+- single_resource_write: 10
 
 ## Schema failures
 

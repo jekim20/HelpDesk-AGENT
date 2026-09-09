@@ -36,6 +36,53 @@ DEFAULT_CONFIG = ROOT / "config/validation_config.json"
 SUPPORTED_RESOURCE_TOKEN = re.compile(
     r"(?<![A-Z0-9_])(DEV_DB|PROD_DB|VPN)(?![A-Z0-9_])"
 )
+EXPLICIT_WRITE_REQUEST_PATTERNS = (
+    re.compile(
+        r"(?:신청|요청|등록|접수)(?:을|를)?\s*"
+        r"(?:해|진행해|넣어|올려|만들어|생성해)?\s*"
+        r"(?:줘|주세요|줄래|주실래|줄\s*수\s*있|주시겠|부탁)"
+    ),
+    re.compile(r"(?:신청|요청|등록|접수)해(?:요)?\s*[.!?]?$"),
+    re.compile(
+        r"(?:티켓|요청).{0,12}(?:만들어|생성해|올려|등록해|접수해)\s*"
+        r"(?:줘|주세요|줄래|주실래|줄\s*수\s*있|주시겠|부탁)"
+    ),
+)
+ASSISTANT_TOOL_EXECUTION_CLAIM_PATTERNS = (
+    re.compile(
+        r"(?:접수|등록)(?:할게|하겠|했|했습니다|해\s*드릴|해드릴|"
+        r"해\s*드리|해드리|완료했|완료하)"
+    ),
+    re.compile(
+        r"(?:신청|요청)(?:을|를)?\s*(?:진행|생성|처리)"
+        r"(?:할게|하겠|했|했습니다|합니다|해\s*드릴|해드릴|해\s*드리|해드리)"
+    ),
+    re.compile(
+        r"티켓.{0,12}(?:만들|생성|등록|접수)"
+        r"(?:겠습니다|게요|었습니다|했|해\s*드릴|해드릴|해\s*드리|해드리)"
+    ),
+    re.compile(
+        r"처리(?:할게|하겠|했|했습니다|합니다|해\s*드릴|해드릴|해\s*드리|해드리)"
+    ),
+)
+HOWTO_REQUEST_PATTERN = re.compile(
+    r"(?:방법|절차|조건|과정|어떻게|어디서|무엇|뭐가|궁금|알려\s*줘|"
+    r"알려\s*주세요|설명해\s*줘|설명해\s*주세요)"
+)
+
+
+def contains_explicit_write_request(text: str) -> bool:
+    return any(pattern.search(text) for pattern in EXPLICIT_WRITE_REQUEST_PATTERNS)
+
+
+def contains_assistant_tool_execution_claim(text: str) -> bool:
+    return any(
+        pattern.search(text) for pattern in ASSISTANT_TOOL_EXECUTION_CLAIM_PATTERNS
+    )
+
+
+def contains_howto_request(text: str) -> bool:
+    return bool(HOWTO_REQUEST_PATTERN.search(text))
 
 
 def resource_consistency_errors(
@@ -85,6 +132,19 @@ def g15_subtype_contract_errors(
     target_resource = target.get("arguments", {}).get("resource")
     errors: list[str] = []
 
+    assistant_claim_turns = [
+        index + 1
+        for index, message in enumerate(conversation)
+        if isinstance(message, dict)
+        and message.get("role") == "assistant"
+        and contains_assistant_tool_execution_claim(message.get("content", ""))
+    ]
+    if assistant_claim_turns:
+        errors.append(
+            f"{record_id}: assistant_tool_execution_claim: assistant turn(s) "
+            f"{assistant_claim_turns} claim or promise Tool execution"
+        )
+
     if subtype_name.endswith("_write"):
         if target.get("decision") != "TOOL":
             errors.append(f"{record_id}: {subtype_name} target decision must be TOOL")
@@ -92,8 +152,41 @@ def g15_subtype_contract_errors(
             errors.append(f"{record_id}: {subtype_name} tool_name must be createTicket")
         if target.get("arguments", {}).get("type") != "ACCESS_REQUEST":
             errors.append(f"{record_id}: {subtype_name} type must be ACCESS_REQUEST")
+        prior_write_turns = [
+            index + 1
+            for index, (message, _) in enumerate(user_turns[:-1])
+            if contains_explicit_write_request(message.get("content", ""))
+        ]
+        if prior_write_turns:
+            errors.append(
+                f"{record_id}: prior_write_before_final: user turn(s) "
+                f"{prior_write_turns} contain an explicit write request"
+            )
+        final_user_text = user_turns[-1][0].get("content", "") if user_turns else ""
+        if not contains_explicit_write_request(final_user_text):
+            errors.append(
+                f"{record_id}: final_write_missing: final user turn must contain an "
+                "explicit write request"
+            )
     elif target.get("decision") != "NO_TOOL":
         errors.append(f"{record_id}: {subtype_name} target decision must be NO_TOOL")
+    else:
+        execution_request_turns = [
+            index + 1
+            for index, (message, _) in enumerate(user_turns)
+            if contains_explicit_write_request(message.get("content", ""))
+        ]
+        if execution_request_turns:
+            errors.append(
+                f"{record_id}: howto_contains_execution_request: user turn(s) "
+                f"{execution_request_turns} contain an explicit write request"
+            )
+        final_user_text = user_turns[-1][0].get("content", "") if user_turns else ""
+        if not contains_howto_request(final_user_text):
+            errors.append(
+                f"{record_id}: final_howto_missing: final user turn must be an "
+                "information/how-to request"
+            )
 
     if subtype_name == "single_resource_write":
         if len(unique_resources) != 1:

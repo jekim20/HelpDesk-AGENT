@@ -1,29 +1,29 @@
 # Candidate Validation
 
 - Status: PASS
-- Total: 134
-- PASS: 117
-- WARN_NEAR_DUPLICATE: 5
+- Total: 186
+- PASS: 165
+- WARN_NEAR_DUPLICATE: 9
 - FAIL: 0
-- Machine validated: 122
+- Machine validated: 174
 - Machine rejected: 12
 - Blocking failures: 0
-- Pilot generated: 134
-- Pilot approved: 58
-- Production generated: 0
-- Production approved: 0
+- Pilot generated: 126
+- Pilot approved: 52
+- Production generated: 60
+- Production approved: 11
 - Production target: 1000
-- Production remaining: 1000
+- Production remaining: 940
 - Exact duplicates: 1
 - Normalized duplicates: 0
-- Near duplicates: 10
+- Near duplicates: 12
 - Near-duplicate threshold: 0.9
-- Approved training export: 0
-- Training model input: 0
+- Approved training export: 11
+- Training model input: 11
 - Dry-run excluded from approval: 35
-- External UNREVIEWED: 0
+- External UNREVIEWED: 20
 - Resource consistency groups: G06
-- Generation subtype counts: {'multi_resource_howto': 7, 'multi_resource_write': 7, 'single_resource_howto': 7, 'single_resource_write': 7}
+- Generation subtype counts: {'multi_resource_howto': 10, 'multi_resource_write': 10, 'single_resource_howto': 10, 'single_resource_write': 10}
 
 ## Record results
 
@@ -97,8 +97,48 @@
 | AUG_G11_002_0001 | PASS | - |
 | AUG_G11_002_0002 | PASS | - |
 | AUG_G11_002_0003 | PASS | - |
-| AUG_G11_002_0004 | PASS | - |
+| AUG_G11_002_0004 | WARN_NEAR_DUPLICATE | near duplicate with AUG_G11_100_0001: 0.9231 |
 | AUG_G11_002_0005 | PASS | - |
+| AUG_G11_100_0001 | WARN_NEAR_DUPLICATE | near duplicate with AUG_G11_002_0004: 0.9231 |
+| AUG_G11_100_0002 | PASS | - |
+| AUG_G11_100_0003 | PASS | - |
+| AUG_G11_100_0004 | WARN_NEAR_DUPLICATE | near duplicate with AUG_G11_102_0002: 0.9091; high sibling similarity for S057 |
+| AUG_G11_100_0005 | PASS | - |
+| AUG_G11_100_0006 | PASS | - |
+| AUG_G11_100_0007 | PASS | - |
+| AUG_G11_100_0008 | PASS | - |
+| AUG_G11_100_0009 | PASS | - |
+| AUG_G11_100_0010 | PASS | - |
+| AUG_G11_101_0001 | PASS | - |
+| AUG_G11_101_0002 | PASS | - |
+| AUG_G11_101_0003 | PASS | - |
+| AUG_G11_101_0004 | PASS | - |
+| AUG_G11_101_0005 | PASS | - |
+| AUG_G11_101_0006 | PASS | - |
+| AUG_G11_101_0007 | PASS | - |
+| AUG_G11_101_0008 | PASS | - |
+| AUG_G11_101_0009 | PASS | - |
+| AUG_G11_101_0010 | PASS | - |
+| AUG_G11_101_0011 | PASS | - |
+| AUG_G11_101_0012 | PASS | - |
+| AUG_G11_101_0013 | PASS | - |
+| AUG_G11_101_0014 | PASS | - |
+| AUG_G11_101_0015 | PASS | - |
+| AUG_G11_102_0001 | PASS | - |
+| AUG_G11_102_0002 | WARN_NEAR_DUPLICATE | near duplicate with AUG_G11_100_0004: 0.9091; high sibling similarity for S057 |
+| AUG_G11_102_0003 | PASS | - |
+| AUG_G11_102_0004 | PASS | - |
+| AUG_G11_102_0005 | PASS | - |
+| AUG_G11_102_0006 | PASS | - |
+| AUG_G11_102_0007 | PASS | - |
+| AUG_G11_102_0008 | PASS | - |
+| AUG_G11_102_0009 | PASS | - |
+| AUG_G11_102_0010 | PASS | - |
+| AUG_G11_102_0011 | PASS | - |
+| AUG_G11_102_0012 | PASS | - |
+| AUG_G11_102_0013 | PASS | - |
+| AUG_G11_102_0014 | PASS | - |
+| AUG_G11_102_0015 | PASS | - |
 | AUG_G12_001_0001 | PASS | - |
 | AUG_G12_001_0002 | PASS | - |
 | AUG_G12_001_0003 | PASS | - |
@@ -155,11 +195,23 @@
 | AUG_G15_019_0001 | MACHINE_REJECTED | AUG_G15_019_0001: multi_resource_write final user turn must not repeat a supported resource |
 | AUG_G15_020_0001 | PASS | - |
 | AUG_G15_021_0001 | PASS | - |
-| AUG_G15_200_0001 | PASS | - |
-| AUG_G15_200_0002 | PASS | - |
-| AUG_G15_201_0001 | PASS | - |
-| AUG_G15_201_0002 | PASS | - |
-| AUG_G15_202_0001 | PASS | - |
-| AUG_G15_202_0002 | PASS | - |
-| AUG_G15_203_0001 | PASS | - |
-| AUG_G15_203_0002 | PASS | - |
+| AUG_G15_100_0001 | PASS | - |
+| AUG_G15_100_0002 | PASS | - |
+| AUG_G15_100_0003 | PASS | - |
+| AUG_G15_100_0004 | PASS | - |
+| AUG_G15_100_0005 | PASS | - |
+| AUG_G15_101_0001 | PASS | - |
+| AUG_G15_101_0002 | PASS | - |
+| AUG_G15_101_0003 | PASS | - |
+| AUG_G15_101_0004 | PASS | - |
+| AUG_G15_101_0005 | PASS | - |
+| AUG_G15_102_0001 | PASS | - |
+| AUG_G15_102_0002 | PASS | - |
+| AUG_G15_102_0003 | PASS | - |
+| AUG_G15_102_0004 | PASS | - |
+| AUG_G15_102_0005 | PASS | - |
+| AUG_G15_103_0001 | PASS | - |
+| AUG_G15_103_0002 | PASS | - |
+| AUG_G15_103_0003 | PASS | - |
+| AUG_G15_103_0004 | PASS | - |
+| AUG_G15_103_0005 | PASS | - |

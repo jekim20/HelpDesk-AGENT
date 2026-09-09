@@ -377,8 +377,9 @@ def build_g15_scenario_specs(
             if subtype_name == "single_resource_write":
                 spec["scenario_resources"] = [required_resource]
                 spec["required_sequence"] = (
-                    f"{required_resource} user context/status turn -> assistant -> "
-                    "resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+                    f"{required_resource} user context/status turn (write request 금지) -> "
+                    "neutral contextual acknowledgement assistant -> resource name 없는 "
+                    "지시어 기반 최초 explicit ACCESS_REQUEST final user turn"
                 )
             else:
                 distractors = [
@@ -390,24 +391,29 @@ def build_g15_scenario_specs(
                 spec["scenario_resources"] = [distractor_resource, required_resource]
                 spec["distractor_resource"] = distractor_resource
                 spec["required_sequence"] = (
-                    f"{distractor_resource} user turn -> assistant -> "
-                    f"{required_resource} user turn -> assistant -> resource name 없는 "
-                    "지시어 기반 explicit ACCESS_REQUEST user turn"
+                    f"{distractor_resource} user context turn (write request 금지) -> "
+                    "neutral contextual acknowledgement assistant -> "
+                    f"{required_resource} user context turn (write request 금지) -> "
+                    "neutral contextual acknowledgement assistant -> resource name 없는 "
+                    "지시어 기반 최초 explicit ACCESS_REQUEST final user turn"
                 )
         elif subtype_name == "single_resource_howto":
             scenario_resource = SUPPORTED_RESOURCE_ORDER[index % len(SUPPORTED_RESOURCE_ORDER)]
             spec["scenario_resources"] = [scenario_resource]
             spec["required_sequence"] = (
-                f"{scenario_resource} user context/status turn -> assistant -> resource name 없는 "
-                "지시어 기반 방법/절차/조건 user question"
+                f"{scenario_resource} user context/status turn (execution request 금지) -> "
+                "neutral contextual acknowledgement assistant -> resource name 없는 "
+                "지시어 기반 방법/절차/조건 final user question"
             )
         elif subtype_name == "multi_resource_howto":
             resource_a = SUPPORTED_RESOURCE_ORDER[index % len(SUPPORTED_RESOURCE_ORDER)]
             resource_b = SUPPORTED_RESOURCE_ORDER[(index + 1) % len(SUPPORTED_RESOURCE_ORDER)]
             spec["scenario_resources"] = [resource_a, resource_b]
             spec["required_sequence"] = (
-                f"{resource_a} user turn -> assistant -> {resource_b} user turn -> assistant -> "
-                "resource name 없는 지시어 기반 방법/절차/조건 user question"
+                f"{resource_a} user context turn (execution request 금지) -> neutral contextual "
+                f"acknowledgement assistant -> {resource_b} user context turn (execution request "
+                "금지) -> neutral contextual acknowledgement assistant -> resource name 없는 "
+                "지시어 기반 방법/절차/조건 final user question"
             )
         else:
             raise DataError(f"unsupported G15 subtype {subtype_name!r}")

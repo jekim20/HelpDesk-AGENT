@@ -1,0 +1,15 @@
+{"id": "1", "source_seed_id": "S057", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "내 계정으로 로그인하려고 했는데 계속 오류가 나. 계정 지원 요청해줘."}]}
+{"id": "2", "source_seed_id": "S057", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "로그인 실패가 반복되는데, 계정 지원 티켓 만들어줘."}]}
+{"id": "3", "source_seed_id": "S057", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "계정에 문제가 생겼어. 지원 요청 올려줘."}]}
+{"id": "4", "source_seed_id": "S057", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "사내 계정으로 로그인할 수 없어. 계정 지원 요청해줘."}]}
+{"id": "5", "source_seed_id": "S057", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "계정 오류가 발생했어. 티켓 하나 만들어줘."}]}
+{"id": "6", "source_seed_id": "S057", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "계정 로그인 시 계속 실패해. 지원 요청해줄래?"}]}
+{"id": "7", "source_seed_id": "S058", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "내 사내 계정이 문제가 있어. 지원 티켓 올려줘."}]}
+{"id": "8", "source_seed_id": "S058", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "계정에 오류가 생겼어. 계정 지원 요청해줘."}]}
+{"id": "9", "source_seed_id": "S058", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "로그인할 때마다 문제가 생겨. 계정 지원 요청해줘."}]}
+{"id": "10", "source_seed_id": "S058", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "내 계정에 계속 문제가 있어. 지원 요청해줘."}]}
+{"id": "11", "source_seed_id": "S058", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "사내 계정으로 로그인할 수 없어. 도움 요청해줘."}]}
+{"id": "12", "source_seed_id": "S058", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "계정 문제가 발생했어. 지원 티켓 올려줘."}]}
+{"id": "13", "source_seed_id": "S057", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "계정 로그인 시 오류가 나. 지원 요청해줘."}]}
+{"id": "14", "source_seed_id": "S057", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "사내 계정에 로그인할 때마다 실패해. 지원 요청해줘."}]}
+{"id": "15", "source_seed_id": "S058", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "계정에 문제가 있어. 티켓 하나 만들어줘."}]}

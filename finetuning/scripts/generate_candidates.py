@@ -254,28 +254,28 @@ def dry_run_g15_conversation(spec: dict[str, Any]) -> list[dict[str, str]]:
     if subtype == "single_resource_write":
         return [
             {"role": "user", "content": f"{resources[0]} 권한 상태를 확인해줘."},
-            {"role": "assistant", "content": "요청한 권한 상태를 확인했습니다."},
+            {"role": "assistant", "content": f"{resources[0]} 접근에 관한 문의군요."},
             {"role": "user", "content": "그 권한을 신청해줘."},
         ]
     if subtype == "multi_resource_write":
         return [
             {"role": "user", "content": f"{resources[0]} 권한부터 확인해줘."},
-            {"role": "assistant", "content": "첫 번째 권한 상태를 확인했습니다."},
+            {"role": "assistant", "content": f"{resources[0]} 접근에 관한 문의군요."},
             {"role": "user", "content": f"이번에는 {resources[1]} 권한도 확인해줘."},
-            {"role": "assistant", "content": "두 번째 권한 상태를 확인했습니다."},
+            {"role": "assistant", "content": f"{resources[1]} 접근도 필요한 상황이군요."},
             {"role": "user", "content": "그 권한을 신청해줘."},
         ]
     if subtype == "single_resource_howto":
         return [
             {"role": "user", "content": f"{resources[0]} 권한 기준을 알려줘."},
-            {"role": "assistant", "content": "요청한 권한 기준을 안내했습니다."},
+            {"role": "assistant", "content": f"{resources[0]} 접근 기준에 관한 문의군요."},
             {"role": "user", "content": "그 권한을 신청하는 절차는 어떻게 돼?"},
         ]
     return [
         {"role": "user", "content": f"{resources[0]} 권한 기준을 알려줘."},
-        {"role": "assistant", "content": "첫 번째 권한 기준을 안내했습니다."},
+        {"role": "assistant", "content": f"{resources[0]} 접근 기준에 관한 문의군요."},
         {"role": "user", "content": f"이번에는 {resources[1]} 권한도 궁금해."},
-        {"role": "assistant", "content": "두 번째 권한 기준을 안내했습니다."},
+        {"role": "assistant", "content": f"{resources[1]} 접근 기준도 궁금한 상황이군요."},
         {"role": "user", "content": "그 권한을 신청하는 절차는 어떻게 돼?"},
     ]
 

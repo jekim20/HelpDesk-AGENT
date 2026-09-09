@@ -164,6 +164,7 @@ generation_group_id는 같은 생성 batch의 sibling을 추적할 수 있게 �
 - spec의 `scenario_resources` 순서와 `required_resource`를 바꾸지 않는다.
 - 마지막 reference user turn에서는 DEV_DB, PROD_DB, VPN 이름을 직접 반복하지 않는다.
 - LLM은 canonical `conversation` array만 생성한다. plain-text 대화 문자열이나 difficulty/label/metadata는 생성하지 않는다.
+- Assistant turn policy는 `neutral contextual acknowledgement only`다. Assistant는 문맥을 확인하거나 정보를 안내할 수 있지만 Tool을 실행했다고 말하거나 실행을 약속하면 안 된다.
 
 추가 원칙:
 - 마지막 user turn만 읽어서는 정답을 확정하기 어려운 사례를 충분히 포함한다.
@@ -171,8 +172,33 @@ generation_group_id는 같은 생성 batch의 sibling을 추적할 수 있게 �
 - `PROD_DB → 그 권한` 구조만 반복하지 않는다.
 - 한 batch에서 같은 conversation skeleton을 반복하지 않고, 단어 몇 개만 바꾼 sibling paraphrase를 만들지 않는다.
 - Write target은 `신청해줘`, `요청 등록해줘` 등 명시적인 실행 요구를 사용한다.
+- Write subtype의 explicit execution/write request는 반드시 마지막 user turn에만 둔다.
+- Write subtype의 마지막 user turn 이전에는 신청해줘/요청해줘/등록해줘/접수해줘/티켓 만들어줘/요청 올려줘 같은 실행 요구를 넣지 않는다.
+- `single_resource_write`의 final 이전 user turn은 status/context only다.
+- `multi_resource_write`는 distractor resource context → required resource context → reference 기반 final write 순서를 지킨다.
 - NO_TOOL target은 `방법`, `절차`, `조건`, `과정` 등을 묻는 정보 요청으로 끝내고 실제 실행 요청을 섞지 않는다.
+- How-to subtype은 conversation 전체에서 실제 실행 요청을 만들지 않는다.
+- 모든 subtype에서 assistant가 `접수할게요`, `접수했습니다`, `등록해드릴게요`, `등록했습니다`, `신청을 진행하겠습니다`, `요청을 생성하겠습니다`, `티켓을 만들겠습니다`, `처리하겠습니다`처럼 Tool 실행 또는 실행 약속을 표현하면 안 된다.
+- `요청할 수 있습니다`, `신청 방법을 안내할 수 있습니다`, `DEV_DB 접근도 필요한 상황이군요` 같은 가능성·정보·문맥 확인은 허용한다.
 - assistant history도 자연스러운 한국어와 띄어쓰기를 유지한다.
+
+좋은 구조:
+
+```text
+User: PROD_DB 상태가 궁금해.
+Assistant: PROD_DB 접근에 관한 문의군요.
+User: DEV_DB도 필요한 상황이야.
+Assistant: DEV_DB 접근도 필요한 상황이군요.
+User: 그 권한 신청해줘.
+```
+
+나쁜 구조:
+
+```text
+User: DEV_DB도 필요해. 신청해줘.
+Assistant: DEV_DB 요청을 접수할게요.
+User: 그 요청을 등록해줘.
+```
 
 ## 4. 생성 후 자동 검증에서 탈락시킬 예
 

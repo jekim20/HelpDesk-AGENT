@@ -30,12 +30,20 @@ import generate_candidates as generation_module  # noqa: E402
 from validate_candidates import (  # noqa: E402
     approved_stage_export_records,
     approved_training_export_records,
+    contains_assistant_tool_execution_claim,
+    contains_explicit_write_request,
     format_training_model_inputs,
     generation_stage_summary,
     machine_validated_records,
     validate_candidates,
 )
 from validate_seed import validate_seed_file  # noqa: E402
+
+
+PROD_V1_ARCHIVE = (
+    Path(__file__).resolve().parents[1]
+    / "data/archive/production_aborted/prod_v1/generated"
+)
 
 
 def seed(
@@ -709,6 +717,9 @@ class PipelineValidationTest(unittest.TestCase):
             self.assertIn(subtype["resource_count_requirement"], job["prompt"])
             self.assertIn(subtype["final_turn_requirement"], job["prompt"])
             self.assertIn(subtype["target_requirement"], job["prompt"])
+            self.assertIn("neutral contextual acknowledgement only", job["prompt"])
+            self.assertIn("explicit execution/write request는 반드시 마지막 user turn", job["prompt"])
+            self.assertIn("assistant가 `접수할게요`", job["prompt"])
             self.assertTrue(job["scenario_specs"])
             self.assertTrue(
                 all(
@@ -1020,9 +1031,9 @@ class PipelineValidationTest(unittest.TestCase):
             "multi_resource_write",
             [
                 {"role": "user", "content": "DEV_DB 상태를 확인해줘."},
-                {"role": "assistant", "content": "DEV_DB 상태를 확인했습니다."},
+                {"role": "assistant", "content": "DEV_DB 접근에 관한 문의군요."},
                 {"role": "user", "content": "PROD_DB도 확인해줘."},
-                {"role": "assistant", "content": "PROD_DB 상태를 확인했습니다."},
+                {"role": "assistant", "content": "PROD_DB 접근도 필요한 상황이군요."},
                 {"role": "user", "content": "그 권한 신청해줘."},
             ],
         )
@@ -1070,15 +1081,159 @@ class PipelineValidationTest(unittest.TestCase):
             "multi_resource_howto",
             [
                 {"role": "user", "content": "DEV_DB 상태를 확인해줘."},
-                {"role": "assistant", "content": "DEV_DB 상태를 확인했습니다."},
+                {"role": "assistant", "content": "DEV_DB 요청 방법을 안내할 수 있습니다."},
                 {"role": "user", "content": "PROD_DB도 확인해줘."},
-                {"role": "assistant", "content": "PROD_DB 상태를 확인했습니다."},
+                {"role": "assistant", "content": "PROD_DB도 신청할 수 있습니다."},
                 {"role": "user", "content": "그 권한 신청 절차가 궁금해."},
             ],
         )
         record["scenario_resources"] = ["DEV_DB", "PROD_DB"]
         report = validate_candidates([record], [source], g15_plan(), 0.9)
         self.assertEqual("PASS", report["status"])
+
+    def test_prod_v1_multi_resource_write_known_bad_patterns_fail(self):
+        records, errors = read_jsonl(PROD_V1_ARCHIVE / "G15_BATCH_101.jsonl")
+        seeds, seed_errors = read_jsonl(SEED_PATH)
+        self.assertEqual([], errors)
+        self.assertEqual([], seed_errors)
+        self.assertEqual(5, len(records))
+        for record in records:
+            with self.subTest(record_id=record["id"]):
+                report = validate_candidates([record], seeds, g15_plan(), 0.9)
+                failures = report["results"][0]["failures"]
+                self.assertEqual("FAIL", report["status"])
+                self.assertTrue(
+                    any("prior_write_before_final" in failure for failure in failures)
+                )
+                self.assertTrue(
+                    any(
+                        "assistant_tool_execution_claim" in failure
+                        for failure in failures
+                    )
+                )
+
+    def test_prod_v1_multi_resource_howto_execution_claims_fail(self):
+        records, errors = read_jsonl(PROD_V1_ARCHIVE / "G15_BATCH_103.jsonl")
+        seeds, seed_errors = read_jsonl(SEED_PATH)
+        self.assertEqual([], errors)
+        self.assertEqual([], seed_errors)
+        known_bad_ids = {
+            "AUG_G15_103_0002",
+            "AUG_G15_103_0004",
+            "AUG_G15_103_0005",
+        }
+        selected = [record for record in records if record["id"] in known_bad_ids]
+        self.assertEqual(3, len(selected))
+        for record in selected:
+            with self.subTest(record_id=record["id"]):
+                report = validate_candidates([record], seeds, g15_plan(), 0.9)
+                failures = report["results"][0]["failures"]
+                self.assertEqual("FAIL", report["status"])
+                self.assertTrue(
+                    any(
+                        "assistant_tool_execution_claim" in failure
+                        for failure in failures
+                    )
+                )
+
+    def test_g15_write_requires_explicit_final_request(self):
+        source = access_request_seed("PROD_DB")
+        record = g15_candidate(
+            source,
+            "single_resource_write",
+            [
+                {"role": "user", "content": "PROD_DB 접근이 필요한 상황이야."},
+                {"role": "assistant", "content": "PROD_DB 접근에 관한 문의군요."},
+                {"role": "user", "content": "그 권한이 필요해."},
+            ],
+        )
+        report = validate_candidates([record], [source], g15_plan(), 0.9)
+        self.assertEqual("FAIL", report["status"])
+        self.assertTrue(
+            any(
+                "final_write_missing" in failure
+                for failure in report["results"][0]["failures"]
+            )
+        )
+
+    def test_g15_howto_requires_information_seeking_final_turn(self):
+        source = no_tool_seed()
+        record = g15_candidate(
+            source,
+            "single_resource_howto",
+            [
+                {"role": "user", "content": "DEV_DB 접근이 필요한 상황이야."},
+                {"role": "assistant", "content": "DEV_DB 접근에 관한 문의군요."},
+                {"role": "user", "content": "그 권한이 필요해."},
+            ],
+        )
+        report = validate_candidates([record], [source], g15_plan(), 0.9)
+        self.assertEqual("FAIL", report["status"])
+        self.assertTrue(
+            any(
+                "final_howto_missing" in failure
+                for failure in report["results"][0]["failures"]
+            )
+        )
+
+    def test_g15_howto_rejects_execution_request_anywhere(self):
+        source = no_tool_seed()
+        record = g15_candidate(
+            source,
+            "single_resource_howto",
+            [
+                {"role": "user", "content": "DEV_DB 권한을 신청해줘."},
+                {"role": "assistant", "content": "DEV_DB 접근에 관한 문의군요."},
+                {"role": "user", "content": "그 절차가 어떻게 되는지 궁금해."},
+            ],
+        )
+        report = validate_candidates([record], [source], g15_plan(), 0.9)
+        self.assertEqual("FAIL", report["status"])
+        self.assertTrue(
+            any(
+                "howto_contains_execution_request" in failure
+                for failure in report["results"][0]["failures"]
+            )
+        )
+
+    def test_g15_explicit_write_detection_requires_action_request_context(self):
+        for text in (
+            "그 권한 신청해줘.",
+            "접근 요청해줘.",
+            "그 요청 등록해줘.",
+            "장애 건을 접수해줘.",
+            "티켓 하나 만들어줘.",
+            "그 요청 올려줘.",
+        ):
+            with self.subTest(text=text):
+                self.assertTrue(contains_explicit_write_request(text))
+        for text in (
+            "그 권한 신청 방법을 알려줘.",
+            "요청할 수 있습니다.",
+            "신청하고 싶어.",
+        ):
+            with self.subTest(text=text):
+                self.assertFalse(contains_explicit_write_request(text))
+
+    def test_g15_assistant_claim_detection_allows_neutral_information(self):
+        for text in (
+            "요청을 접수할게요.",
+            "요청을 접수했습니다.",
+            "요청을 등록해드릴게요.",
+            "신청을 진행하겠습니다.",
+            "요청을 생성하겠습니다.",
+            "티켓을 만들겠습니다.",
+            "처리하겠습니다.",
+        ):
+            with self.subTest(text=text):
+                self.assertTrue(contains_assistant_tool_execution_claim(text))
+        for text in (
+            "요청할 수 있습니다.",
+            "신청 방법을 안내할 수 있습니다.",
+            "DEV_DB 접근도 필요한 상황이군요.",
+        ):
+            with self.subTest(text=text):
+                self.assertFalse(contains_assistant_tool_execution_claim(text))
 
     def test_generation_subtype_is_excluded_from_training_model_input(self):
         source = access_request_seed("PROD_DB")

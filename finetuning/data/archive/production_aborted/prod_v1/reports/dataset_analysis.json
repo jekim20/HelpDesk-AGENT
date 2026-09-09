@@ -1,63 +1,63 @@
 {
-  "totalGenerated": 134,
-  "passed": 117,
-  "warnings": 5,
+  "totalGenerated": 186,
+  "passed": 165,
+  "warnings": 9,
   "failed": 0,
-  "machineValidated": 122,
+  "machineValidated": 174,
   "machineRejected": 12,
   "blockingFailures": 0,
-  "approvedTrainingExport": 0,
-  "pilotGenerated": 134,
-  "pilotApproved": 58,
-  "productionGenerated": 0,
-  "productionApproved": 0,
+  "approvedTrainingExport": 11,
+  "pilotGenerated": 126,
+  "pilotApproved": 52,
+  "productionGenerated": 60,
+  "productionApproved": 11,
   "productionTarget": 1000,
-  "productionRemaining": 1000,
+  "productionRemaining": 940,
   "byGenerationSubtype": {
-    "multi_resource_howto": 7,
-    "multi_resource_write": 7,
-    "single_resource_howto": 7,
-    "single_resource_write": 7
+    "multi_resource_howto": 10,
+    "multi_resource_write": 10,
+    "single_resource_howto": 10,
+    "single_resource_write": 10
   },
   "byReviewStatus": {
-    "DROP": 5,
-    "KEEP": 58,
-    "REWRITE": 24,
-    "UNREVIEWED": 35
+    "DROP": 7,
+    "KEEP": 63,
+    "REWRITE": 49,
+    "UNREVIEWED": 55
   },
   "byGroup": {
     "G01": 10,
     "G06": 39,
     "G10": 15,
-    "G11": 5,
+    "G11": 45,
     "G12": 10,
-    "G15": 43
+    "G15": 55
   },
   "byIntent": {
-    "ACCESS_REQUEST": 65,
+    "ACCESS_REQUEST": 71,
     "ACCESS_STATUS": 10,
-    "ACCOUNT_SUPPORT": 20,
-    "NO_TOOL": 27
+    "ACCOUNT_SUPPORT": 60,
+    "NO_TOOL": 33
   },
   "byDifficulty": {
     "DIRECT": 18,
     "HOW_TO": 5,
     "INFO_TO_ACTION_OVERRIDE": 8,
     "INTENT_REASON_CONFLICT": 39,
-    "MULTI_TURN": 43,
-    "NO_TOOL_LOOKALIKE": 22,
-    "PARAPHRASE": 21,
+    "MULTI_TURN": 55,
+    "NO_TOOL_LOOKALIKE": 28,
+    "PARAPHRASE": 61,
     "POLICY": 5
   },
   "byResource": {
-    "ACCOUNT_SUPPORT": 20,
-    "DEV_DB": 20,
-    "PROD_DB": 41,
-    "VPN": 14
+    "ACCOUNT_SUPPORT": 60,
+    "DEV_DB": 22,
+    "PROD_DB": 43,
+    "VPN": 16
   },
   "byTicketType": {
-    "ACCESS_REQUEST": 65,
-    "ACCOUNT_SUPPORT": 20
+    "ACCESS_REQUEST": 71,
+    "ACCOUNT_SUPPORT": 60
   },
   "bySourceSeed": {
     "S001": 2,
@@ -67,20 +67,23 @@
     "S005": 2,
     "S011": 3,
     "S012": 2,
+    "S013": 2,
+    "S014": 2,
+    "S015": 2,
     "S016": 14,
     "S017": 12,
     "S018": 13,
     "S033": 6,
     "S034": 4,
-    "S035": 2,
-    "S036": 2,
-    "S037": 2,
+    "S035": 4,
+    "S036": 4,
+    "S037": 4,
     "S043": 11,
     "S045": 10,
     "S046": 11,
     "S056": 5,
-    "S057": 5,
-    "S058": 6,
+    "S057": 24,
+    "S058": 27,
     "S059": 4
   },
   "exactDuplicates": [
@@ -91,6 +94,16 @@
   ],
   "normalizedDuplicates": [],
   "nearDuplicates": [
+    {
+      "left": "AUG_G11_002_0004",
+      "right": "AUG_G11_100_0001",
+      "similarity": 0.9231
+    },
+    {
+      "left": "AUG_G11_100_0004",
+      "right": "AUG_G11_102_0002",
+      "similarity": 0.9091
+    },
     {
       "left": "AUG_G15_002_0001",
       "right": "AUG_G15_003_0001",

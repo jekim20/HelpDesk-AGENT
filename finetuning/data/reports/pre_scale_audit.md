@@ -1,262 +1,194 @@
-# DevDesk QLoRA Pre-Scale Audit
+# DevDesk QLoRA Augmentation Pipeline v1 Pre-Scale Audit
 
-- Audit date: 2026-09-08 (Asia/Seoul)
-- Scope: augmentation data/configuration/prompts/jobs/validation only
+- Audit date: 2026-09-09 (Asia/Seoul)
+- Scope: frozen `finetuning/` augmentation pipeline, active candidates, reports, exports, and Git freeze state
 - External API calls: none
-- Java Agent changes: none
-- Final decision: **NO-GO**
+- Code, prompt, validator, seed, and candidate changes: none
+- Audit artifact updated: this report only
+- Final decision: **GO**
 
-The source-leakage and G11 target-contract checks pass after one prompt-example cleanup.
-The current machine-validation baseline also has zero blocking failures. Pilot and production
-exports are now explicitly separated. Production-scale generation is nevertheless not ready to
-start because the complete `finetuning/` tree is currently untracked by Git; the remaining blocker
-is reproducible freeze state rather than dataset lineage or label-contract correctness.
+All requested pre-scale gates pass. Held-out/historical leakage is zero, the G11
+ACCOUNT_SUPPORT target contract is preserved, pilot and production data are separated,
+candidate validation has zero blocking failures, all 49 pipeline tests pass, and the
+pipeline is frozen by a Git commit and the `qlora-augmentation-v1` tag.
 
-## 1. Leakage audit
+## 1. Gate summary
+
+| Gate | Expected | Observed | Result |
+| --- | ---: | ---: | --- |
+| Held-out/historical leakage | 0 | 0 | PASS |
+| G11 ACCOUNT_SUPPORT contract | PASS | PASS | PASS |
+| Pilot/production separation | PASS | PASS | PASS |
+| Pilot generated | 126 | 126 | PASS |
+| Pilot approved | 52 | 52 | PASS |
+| Production generated | 0 | 0 | PASS |
+| Production approved | 0 | 0 | PASS |
+| Production target | 1,000 | 1,000 | PASS |
+| Production remaining | 1,000 | 1,000 | PASS |
+| Blocking failures | 0 | 0 | PASS |
+| Pipeline tests | PASS | 49/49 PASS | PASS |
+| `finetuning/` Git tracked | required | 96 tracked paths; clean baseline | PASS |
+| Freeze commit | required | `31a501ba19b8e34982260766e1e23846d505ae3f` | PASS |
+| `qlora-augmentation-v1` tag | required | exists and resolves to freeze commit | PASS |
+
+## 2. Held-out and historical leakage audit
 
 ### Checked files and surfaces
 
-- `data/seeds/devdesk_qlora_seed_dataset_v0.4.jsonl`
-- `config/augmentation_plan.yaml`
-- `prompts/augmentation_generation_prompts.md`, including every group addendum and example
-- `scripts/pipeline_common.py` source selection and prompt construction
-- `scripts/build_generation_jobs.py`
-- `scripts/generate_candidates.py`
-- `scripts/validate_candidates.py`
-- `data/reports/generation_jobs_full_plan.jsonl`
-- `data/reports/generation_jobs_report.md`
-- all current `data/generated/*.jsonl` candidate files
-- `data/processed/approved_training_candidates.jsonl`
-- `data/processed/approved_training_model_input.jsonl`
+- `finetuning/data/seeds/devdesk_qlora_seed_dataset_v0.4.jsonl`
+- `finetuning/config/augmentation_plan.yaml`
+- `finetuning/prompts/augmentation_generation_prompts.md`, including examples and addenda
+- `finetuning/scripts/pipeline_common.py`
+- `finetuning/scripts/build_generation_jobs.py`
+- `finetuning/scripts/generate_candidates.py`
+- all 18 in-memory full-plan generation jobs and their final prompts
+- `finetuning/data/reports/generation_jobs_full_plan.jsonl`
+- all active `finetuning/data/generated/*.jsonl` records
+- stage-separated processed exports
 
-### Checked blocked source IDs
+### Blocked source IDs checked
 
-| ID | Split | Intent |
-| --- | --- | --- |
-| S029 | heldout_candidate | INCIDENT |
-| S044 | historical_regression_candidate | ACCESS_REQUEST |
-| S047 | heldout_candidate | INCIDENT |
-| S050 | heldout_candidate | ACCESS_STATUS |
-| S062 | heldout_candidate | ACCOUNT_SUPPORT |
-| S063 | heldout_candidate | INCIDENT |
-| S064 | heldout_candidate | ACCOUNT_SUPPORT |
-| S065 | heldout_candidate | NO_TOOL |
+| ID | Split |
+| --- | --- |
+| S029 | heldout_candidate |
+| S044 | historical_regression_candidate |
+| S047 | heldout_candidate |
+| S050 | heldout_candidate |
+| S062 | heldout_candidate |
+| S063 | heldout_candidate |
+| S064 | heldout_candidate |
+| S065 | heldout_candidate |
 
-### Results
+### Result
 
-- Blocked IDs used by any of the 18 full-plan generation jobs: **0**
-- Blocked IDs present in the augmentation plan: **0**
-- Blocked IDs present in the prompt guide/addenda: **0**
-- Blocked IDs present in generated final prompts: **0**
-- Exact blocked conversation copies in the plan, prompt guide, or final prompts: **0**
-- Current generated candidates with a blocked `source_seed_id`: **0**
-- Current approved candidates with a blocked `source_seed_id`: **0**
-- Exact blocked conversation copies in current generated candidates: **0**
+- Blocked IDs in augmentation plan, prompt guide/addenda, or built final prompts: **0**
+- Blocked IDs selected by any generation job: **0**
+- Active generated records using a blocked `source_seed_id`: **0**
+- Exact blocked conversation copies in plan/prompt/final-prompt surfaces: **0**
+- Exact or normalized blocked conversation copies in active generated records: **0**
+- Generation-job build errors: **0**
 
-The post-fix lexical comparison between blocked conversations and generation-job prompt examples
-found no exact copy. The highest `SequenceMatcher` similarity was 0.6923 (S062 versus training
-seed S056); this is an audit signal, not a semantic classifier. Manual review confirmed that the
-remaining examples describe the shared account-support boundary without copying a held-out
-conversation.
+The audit also reviewed the ACCOUNT_SUPPORT/login-failure prompt area. It retains the
+general contract and eligible training-seed examples without copying the held-out S062
+conversation. No leakage correction was required in this audit.
 
-### Issue found and correction
+## 3. G11 ACCOUNT_SUPPORT contract audit
 
-The prompt guide contained this rejected-output example:
+G11 remains `account_support_contrastive_conflict`. Its required target is:
 
-`로그인 실패해. 계정 지원 티켓 만들어줘.`
-
-It was a too-direct shortening of held-out S062 (`로그인이 계속 실패해...`). The literal example
-was replaced with an abstract input-type description:
-
-`failure 표현과 명시적인 계정 지원 실행 요청이 함께 있는 문장`
-
-No held-out/historical record or label was changed. A regression test now checks blocked source
-IDs, source lists, exact serialized conversations, literal conversation text, and the removed
-S062-like example across the plan, prompt guide, and built final prompts.
-
-## 2. G11 ACCOUNT_SUPPORT versus INCIDENT contract audit
-
-G11 is configured as `account_support_contrastive_conflict` with `intent=ACCOUNT_SUPPORT`.
-Its training contract is:
-
-```text
-decision = TOOL
-tool_name = createTicket
-arguments.type = ACCOUNT_SUPPORT
-arguments.resource = ACCOUNT_SUPPORT
+```json
+{
+  "decision": "TOOL",
+  "tool_name": "createTicket",
+  "arguments": {
+    "type": "ACCOUNT_SUPPORT",
+    "resource": "ACCOUNT_SUPPORT"
+  }
+}
 ```
 
-The selected G11 sources are only S057 and S058. Both are `seed_train_candidate`, both have
-`intent=ACCOUNT_SUPPORT`, and both carry the exact contract above. No held-out or historical ID,
-including S062, is selected or rendered as a prompt example.
+Deterministic checks confirmed:
 
-The full G11 prompt includes all four immutable constraints:
+- G11 source selection returns only S057 and S058.
+- Both sources are `seed_train_candidate`, have `intent=ACCOUNT_SUPPORT`, and carry the exact target above.
+- No held-out/historical source is eligible or selected.
+- The final G11 prompt includes `required_decision=TOOL`, `required_tool_name=createTicket`,
+  `required_type=ACCOUNT_SUPPORT`, and `required_resource=ACCOUNT_SUPPORT` for each source.
+- Failure wording such as login failure/account error does not change the pipeline-owned target.
+- The LLM does not own `decision`, `tool_name`, `type`, or `resource`; candidate assembly attaches the source target.
+- All 5 current G11 candidates retain the exact ACCOUNT_SUPPORT target.
 
-- `required_decision = TOOL`
-- `required_tool_name = createTicket`
-- `required_type = ACCOUNT_SUPPORT`
-- `required_resource = ACCOUNT_SUPPORT`
+Result: **PASS**. This is a fine-tuning dataset contract audit; no Java classifier was changed.
 
-The generator output does not own the target. Even if a raw mock response supplies an INCIDENT
-target beside failure wording, `assemble_candidates` discards that target and attaches the source
-seed target. This was verified deterministically without an API call.
+## 4. Pilot and production separation
 
-The opposite boundary is also intact: G07's selected training sources all have
-`arguments.type=INCIDENT`, and the G09 prompt explicitly requires a real incident action rather
-than an account-support action. This audit does not change the Java deterministic classifier;
-the known Java precedence caveat remains outside the dataset-contract scope.
+The active inventory and in-memory validation produced:
 
-Current generated data contains no G11 candidate batch, so this conclusion is based on the frozen
-seed, plan, constructed final prompt, and deterministic assembly test—not on a live G11 sample.
+| Metric | Count |
+| --- | ---: |
+| Total active generated | 126 |
+| Machine validated | 114 |
+| Machine rejected | 12 |
+| Blocking failures | 0 |
+| Pilot generated | 126 |
+| Pilot approved | 52 |
+| Production generated | 0 |
+| Production approved | 0 |
+| Production target | 1,000 |
+| Production remaining | 1,000 |
 
-## 3. Source split and deterministic checks
+Separation checks:
 
-Seed validation result:
+- Every active record has `generation_stage=pilot|production` and a non-empty `generation_run_id`.
+- All 52 approved pilot records are routed only to `approved_pilot_candidates.jsonl`.
+- `approved_production_candidates.jsonl` contains 0 records.
+- `approved_training_candidates.jsonl` and model-input export contain 0 records because training export is production-only.
+- Pilot, dry-run, rejected/archive, and legacy artifacts do not reduce the production quota.
+- G15's production target remains 100 within the unchanged total target of 1,000.
+
+Result: **PASS**.
+
+## 5. Validation and pipeline tests
+
+Candidate validation was executed in memory to avoid rewriting datasets or generated reports:
 
 ```text
 Status: PASS
-Total: 65
-seed_train_candidate: 57
-heldout_candidate: 7
-historical_regression_candidate: 1
-```
-
-The common source selector filters to `split_hint=seed_train_candidate` before applying group
-intent/difficulty selection. `validate_augmentation_sources` independently rejects held-out and
-historical sources. G15's subtype selector also requires `source_split=seed_train_candidate`.
-
-Added deterministic coverage verifies:
-
-- G11 selects only ACCOUNT_SUPPORT training seeds.
-- Held-out/historical records are excluded from source selection and final prompts.
-- Failure wording does not alter the source-owned ACCOUNT_SUPPORT target.
-- A raw model-supplied target cannot replace the pipeline-owned target.
-- Incident training sources retain INCIDENT targets.
-
-## 4. Pilot versus production separation
-
-Current generated inventory:
-
-| Item | Count |
-| --- | ---: |
-| Total generated candidates | 121 |
-| `generation_mode=external` | 86 |
-| `generation_mode=dry-run` | 35 |
-| `generation_stage=pilot` | 121 |
-| `generation_stage=production` | 0 |
-| KEEP | 48 |
-| REWRITE | 21 |
-| DROP | 17 |
-| UNREVIEWED | 35 |
-| Machine rejected | 12 |
-| Approved pilot export | 48 |
-| Approved production export | 0 |
-| Final training export | 0 |
-
-Existing protections work as designed:
-
-- dry-run records are excluded from approved export;
-- machine failures are excluded;
-- only machine-valid external KEEP records enter approved export;
-- raw responses and rejected pilot artifacts remain preserved.
-
-The pilot/production lineage blocker is resolved with `generation_stage=pilot|production` and a
-non-empty `generation_run_id`. All 121 active pre-production candidates were backfilled as
-`pilot/pilot_v1`; archived failed-pilot and legacy artifacts were not modified. External generation
-now requires explicit `--stage` and `--run-id` before provider initialization.
-
-Machine-valid external KEEP records are routed as follows:
-
-- `approved_pilot_candidates.jsonl`: pilot only, currently 48
-- `approved_production_candidates.jsonl`: production only, currently 0
-- `approved_training_candidates.jsonl`: production-approved alias, currently 0
-
-The production target and remaining count are computed only from production-stage candidates.
-Pilot, dry-run, failed-pilot, and legacy counts do not reduce the 1,000-candidate production quota.
-
-## 5. Freeze readiness
-
-### Passed checks
-
-- Augmentation plan total: **1,000 / 1,000**
-- G15 total: **100**, four subtypes × 25
-- Generation jobs: **18**, plan build PASS
-- Generation model: defaults to `gpt-4o-mini` and can be explicitly pinned with
-  `DEV_DESK_AUGMENTATION_MODEL=gpt-4o-mini`
-- Current generated schema-invalid records: **0**
-- Current production model-facing records: **0**, because production generation has not started
-- Pilot formatter regression: canonical conversation/target is preserved while stage/run metadata is excluded
-- Model-facing keys: exactly `conversation`, `target`; generation/review/scenario metadata excluded
-- Workflow remains machine validation → human review → approved export
-- Candidate validation: PASS, blocking failures **0**
-
-Current validation baseline:
-
-```text
-Total: 121
-PASS: 104
-WARN_NEAR_DUPLICATE: 5
-Machine validated: 109
+Total: 126
+Machine validated: 114
 Machine rejected: 12
 Blocking failures: 0
-Pilot generated: 121
-Pilot approved: 48
+Pilot generated: 126
+Pilot approved: 52
 Production generated: 0
 Production approved: 0
 Production target: 1000
 Production remaining: 1000
-Approved training export: 0
-Training model input: 0
 ```
 
-Pipeline regression result:
+The full-plan builder also passed with 18 jobs, 1,000 planned production candidates,
+G15=100, and zero build errors.
+
+Pipeline regression command and result:
 
 ```text
-Ran 49 tests
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest finetuning/scripts/test_pipeline.py
+Ran 49 tests in 0.020s
 OK
 ```
 
-### Reproducibility snapshot
+Result: **PASS**.
 
-| File | SHA-256 |
-| --- | --- |
-| seed dataset | `ea0ecdd32292ff9f4ddaa2ce0cf698942b54d5c97a619672d92fe7b9a101d0b9` |
-| augmentation plan | `80bbe537fb30dafb3809ba2e01d612b681ff8b06cd52d4538c7b8fc52e67e957` |
-| generation prompt guide | `94f43cf21cebc4581285613324c59ad597f3c3929802a14262be1498a0ccbaa6` |
-| pipeline common | `a46c55edee735b255008e69f05c7aa8a775df68ef852ffa0b37d169055c9de5f` |
-| generation-job builder | `73ae256519fa273a968ad106bf9d741306cfb9be440d374cccea34de1f81480b` |
-| candidate generator | `c6cf55da4480dcc58bcdb7d0dc3a3f29a787cfa04379ced9b3a90ec9d8083a15` |
-| candidate validator | `66087e13da068b3f73037fbf322b453bec16aac3b0eb4baed437a56e9d076220` |
-| dataset analyzer | `75176fdefab045f32d5b16c1c35d4597d674b1711677a56a07d7ce0ac1e447af` |
-| pipeline tests | `3711b76508f4a9a0aa552d729bc31bcd9a500bb69b5cc3172ecbb2b55a5480a5` |
+## 6. Git freeze audit
 
-The snapshot identifies the audited content, but it is not yet a repository freeze: `git status`
-reports the entire `finetuning/` directory as untracked (`?? finetuning/`). A commit/tag or an
-equivalent immutable artifact manifest is required before a reproducible production run.
+The audit started from a clean Git worktree. `git ls-files finetuning` returned 96 tracked
+paths, including this audit report, so the `finetuning/` tree is under version control.
 
-## 6. Findings, changes, and final decision
+Freeze evidence:
 
-### Changes made by this audit
+```text
+commit: 31a501ba19b8e34982260766e1e23846d505ae3f
+subject: feat: freeze qlora augmentation pipeline v1
+committed: 2026-09-09T09:12:31+09:00
+tag: qlora-augmentation-v1
+tag target: 31a501ba19b8e34982260766e1e23846d505ae3f
+```
 
-1. Removed the S062-like literal conversation from the rejected-output prompt example and replaced
-   it with a generalized input-type description.
-2. Added exact leakage/source-split regression coverage.
-3. Added G11 source, target ownership, and opposing INCIDENT contract coverage.
-4. Rebuilt the full-plan job report and reran seed, candidate, dataset, and unit-test checks.
-5. Added required stage/run provenance, backfilled active candidates as `pilot/pilot_v1`, and
-   separated pilot, production, and final training exports.
-6. Added production-only quota accounting and stage-separated validation/analysis metrics.
+The tag resolves exactly to the freeze commit. Updating this report after the audit is the
+only working-tree change produced by the audit; no generation input, code, prompt, validator,
+seed, candidate, or processed dataset was changed.
 
-No seed label, held-out record, Java code, augmentation taxonomy, target quantity, or generation
-prompt semantics was changed.
+## 7. Findings and decision
 
-### Decision: NO-GO
+### Findings
 
-Leakage, G11 target ownership, canonical schema, plan totals, pilot/production separation, and the
-zero-blocking-failure baseline are ready. The 48 pilot KEEP records no longer enter the final
-training export, and the production remaining count is 1,000.
+- No new leakage, target-contract, stage-separation, validation, test, tracking, commit, or tag issue was found.
+- The previous NO-GO reason is resolved: the `finetuning/` tree is tracked and an immutable freeze commit/tag exists.
+- No corrective implementation or dataset mutation was needed.
 
-Production-scale external generation must still not start until the audited `finetuning/` content
-is placed under an immutable versioned freeze (commit/tag or equivalent checksum manifest retained
-with the run). After that remaining freeze requirement is met without changing the audited
-contracts, the audit's technical checks support a GO decision.
+### Final decision: GO
+
+The QLoRA augmentation pipeline v1 satisfies every requested production pre-scale gate.
+Production generation may start from the exact `qlora-augmentation-v1` freeze, with external
+generation continuing to require explicit production stage/run provenance and the existing
+machine-validation → human-review → production-approved export flow.

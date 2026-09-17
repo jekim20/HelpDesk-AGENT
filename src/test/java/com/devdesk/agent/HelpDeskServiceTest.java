@@ -36,7 +36,8 @@ class HelpDeskServiceTest {
                 new TicketTools(tickets, invocationTracker),
                 new ModelFallbackExecutor(),
                 invocationTracker,
-                new UserInputSafetyAdvisor());
+                new UserInputSafetyAdvisor(),
+                new PromptInjectionGuard());
     }
 
     @Test

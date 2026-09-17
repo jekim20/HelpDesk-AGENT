@@ -86,7 +86,8 @@ class RagRetrievalTest {
                 new TicketTools(ticketRepository, invocationTracker),
                 new ModelFallbackExecutor(),
                 invocationTracker,
-                new UserInputSafetyAdvisor());
+                new UserInputSafetyAdvisor(),
+                new PromptInjectionGuard());
         ChatController controller = new ChatController(
                 service, mock(IngestService.class), ticketRepository);
 

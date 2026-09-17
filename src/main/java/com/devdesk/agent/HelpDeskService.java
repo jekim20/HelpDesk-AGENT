@@ -38,6 +38,7 @@ public class HelpDeskService {
     private final ModelFallbackExecutor fallbackExecutor;
     private final ToolInvocationTracker invocationTracker;
     private final UserInputSafetyAdvisor userInputSafety;
+    private final PromptInjectionGuard promptInjectionGuard;
     private final Map<String, String> conversationResources = new ConcurrentHashMap<>();
 
     public HelpDeskService(@Qualifier("devDeskPrimaryClient") ChatClient primaryClient,
@@ -48,7 +49,8 @@ public class HelpDeskService {
                            TicketTools ticketTools,
                            ModelFallbackExecutor fallbackExecutor,
                            ToolInvocationTracker invocationTracker,
-                           UserInputSafetyAdvisor userInputSafety) {
+                           UserInputSafetyAdvisor userInputSafety,
+                           PromptInjectionGuard promptInjectionGuard) {
         this.primaryClient = primaryClient;
         this.fallbackClient = fallbackClient;
         this.memory = memory;
@@ -58,6 +60,7 @@ public class HelpDeskService {
         this.fallbackExecutor = fallbackExecutor;
         this.invocationTracker = invocationTracker;
         this.userInputSafety = userInputSafety;
+        this.promptInjectionGuard = promptInjectionGuard;
     }
 
     public ChatResult chat(String question, String sessionId, String userId, boolean simulatePrimaryFailure) {
@@ -142,6 +145,7 @@ public class HelpDeskService {
         if (sessionId == null || sessionId.isBlank() || userId == null || userId.isBlank()) {
             return "sessionId와 userId는 필수입니다.";
         }
+        if (promptInjectionGuard.isSuspicious(question)) return PromptInjectionGuard.BLOCK_RESPONSE;
         return userInputSafety.rejectionFor(question);
     }
 

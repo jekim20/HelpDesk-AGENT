@@ -32,6 +32,11 @@ export interface Ticket {
   status: string;
 }
 
+export interface IngestResult {
+  source: string;
+  chunks: number;
+}
+
 export class DevDeskApiError extends Error {
   constructor(
     message: string,
@@ -68,4 +73,8 @@ export function sendChat(request: ChatRequest): Promise<ChatResponse> {
 
 export function loadTickets(): Promise<Ticket[]> {
   return requestJson<Ticket[]>("/api/admin/tickets");
+}
+
+export function initializeKnowledge(): Promise<IngestResult[]> {
+  return requestJson<IngestResult[]>("/api/ingest", { method: "POST" });
 }

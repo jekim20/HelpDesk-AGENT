@@ -5,11 +5,13 @@ import {
   DevDeskApiError,
   Ticket,
   ToolCall,
+  initializeKnowledge,
   loadTickets,
   sendChat,
 } from "./api/devdesk";
 
 type BackendStatus = "checking" | "connected" | "unavailable";
+type KnowledgeStatus = "idle" | "initializing" | "ready" | "error";
 
 interface ConversationEntry {
   id: number;
@@ -66,6 +68,13 @@ function hasPendingState(response: ChatResponse): boolean {
     response.answer.includes("PENDING") ||
     response.toolCalls.some((call) => call.toolResult?.includes("PENDING"))
   );
+}
+
+function describeEvidence(response: ChatResponse): string {
+  const evidence: string[] = [];
+  if (response.toolCalls.length > 0 || response.toolUsed) evidence.push("Tool trace");
+  if (response.sources.length > 0) evidence.push("Retrieved sources");
+  return evidence.length > 0 ? evidence.join(" + ") : "Conversational response";
 }
 
 function StatusDot({ status }: { status: BackendStatus }) {
@@ -160,6 +169,8 @@ function App() {
   const [backendStatus, setBackendStatus] = useState<BackendStatus>("checking");
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoadingTickets, setIsLoadingTickets] = useState(false);
+  const [knowledgeStatus, setKnowledgeStatus] = useState<KnowledgeStatus>("idle");
+  const [knowledgeError, setKnowledgeError] = useState("");
   const nextId = useRef(1);
   const conversationEndRef = useRef<HTMLDivElement>(null);
 
@@ -178,6 +189,28 @@ function App() {
       setBackendStatus("unavailable");
     } finally {
       setIsLoadingTickets(false);
+    }
+  }
+
+  async function handleKnowledgeInitialization() {
+    if (knowledgeStatus === "initializing") return;
+
+    setKnowledgeStatus("initializing");
+    setKnowledgeError("");
+    try {
+      await initializeKnowledge();
+      setKnowledgeStatus("ready");
+      setBackendStatus("connected");
+    } catch (error) {
+      setKnowledgeStatus("error");
+      setKnowledgeError(
+        error instanceof DevDeskApiError && error.status
+          ? `Knowledge initialization failed · HTTP ${error.status}`
+          : "Knowledge initialization failed",
+      );
+      setBackendStatus(
+        error instanceof DevDeskApiError && error.status ? "connected" : "unavailable",
+      );
     }
   }
 
@@ -267,8 +300,14 @@ function App() {
               <h2>Conversation</h2>
             </div>
             {entries.length > 0 && (
-              <button className="text-button" onClick={() => setEntries([])} type="button">
-                Clear view
+              <button
+                aria-label="Clear messages shown in this browser only"
+                className="text-button"
+                onClick={() => setEntries([])}
+                title="Clears only messages shown in this browser. Server-side conversation memory is preserved."
+                type="button"
+              >
+                Clear display
               </button>
             )}
           </div>
@@ -283,7 +322,7 @@ function App() {
                   and the PENDING write boundary.
                 </p>
                 <div className="empty-state__flow" aria-label="Demo flow">
-                  <span>Question</span><b>→</b><span>Agent route</span><b>→</b><span>Evidence</span>
+                  <span>Question</span><b>→</b><span>Execution</span><b>→</b><span>Evidence</span>
                 </div>
               </div>
             )}
@@ -393,9 +432,38 @@ function App() {
               />
               <span>
                 <strong>Fallback demo</strong>
-                Simulate primary failure on the next model request
+                Send model-path requests with primary-failure simulation while enabled
               </span>
             </label>
+          </section>
+
+          <section className="panel-block knowledge-block">
+            <div className="panel-title panel-title--compact panel-title--split">
+              <div>
+                <span className="panel-icon" aria-hidden="true">◇</span>
+                <h2>Knowledge Base</h2>
+              </div>
+              <span
+                aria-live="polite"
+                className={`knowledge-status knowledge-status--${knowledgeStatus}`}
+              >
+                {knowledgeStatus === "idle" && "Not run in this UI session"}
+                {knowledgeStatus === "initializing" && "Initializing…"}
+                {knowledgeStatus === "ready" && "Ready for RAG demo"}
+                {knowledgeStatus === "error" && "Initialization failed"}
+              </span>
+            </div>
+            <button
+              className="initialize-button"
+              disabled={knowledgeStatus === "initializing"}
+              onClick={() => void handleKnowledgeInitialization()}
+              type="button"
+            >
+              {knowledgeStatus === "initializing"
+                ? "Initializing policy knowledge…"
+                : "Initialize policy knowledge"}
+            </button>
+            {knowledgeError && <p className="knowledge-error" role="alert">{knowledgeError}</p>}
           </section>
 
           <section className="panel-block">
@@ -403,6 +471,7 @@ function App() {
               <span className="panel-icon" aria-hidden="true">⌁</span>
               <h2>Suggested demos</h2>
             </div>
+            <p className="suggestion-helper">RAG demo requires policy knowledge initialization.</p>
             <div className="suggestion-list">
               {SUGGESTED_QUESTIONS.map((suggestion) => (
                 <button
@@ -435,7 +504,7 @@ function App() {
             </div>
             {latestResponse ? (
               <dl className="summary-grid">
-                <div><dt>Route evidence</dt><dd>{latestResponse.toolUsed ? "Tool" : latestResponse.sources.length > 0 ? "RAG" : "Agent"}</dd></div>
+                <div><dt>Observed evidence</dt><dd>{describeEvidence(latestResponse)}</dd></div>
                 <div><dt>Tool calls</dt><dd>{latestResponse.toolCalls.length}</dd></div>
                 <div><dt>Sources</dt><dd>{latestResponse.sources.length}</dd></div>
                 <div><dt>Fallback</dt><dd>{latestResponse.fallbackUsed ? "Used" : "Not used"}</dd></div>

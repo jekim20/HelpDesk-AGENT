@@ -166,7 +166,17 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .toggle-row input { margin: 2px 0 0; accent-color: var(--blue); }
 .toggle-row strong { display: block; color: #45566d; font-size: 10px; }
 
-.suggestion-list { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 13px; }
+.knowledge-status { font-size: 9px; font-weight: 800; }
+.knowledge-status--idle, .knowledge-status--initializing { color: #78869a; }
+.knowledge-status--ready { color: var(--teal); }
+.knowledge-status--error, .knowledge-error { color: var(--red); }
+.initialize-button { width: 100%; margin-top: 13px; padding: 10px 12px; border: 1px solid #b8cef3; border-radius: 8px; color: #24528e; background: var(--blue-soft); font-size: 11px; font-weight: 800; }
+.initialize-button:hover:not(:disabled) { border-color: #7ea9f6; background: #e5efff; }
+.initialize-button:disabled { color: #8290a2; border-color: #d9e0e9; background: #f1f3f6; }
+.knowledge-error { margin: 8px 0 0; font-size: 9px; }
+
+.suggestion-helper { margin: 9px 0 0; color: #7a879a; font-size: 9px; }
+.suggestion-list { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 9px; }
 .suggestion-list button { min-height: 56px; padding: 9px; text-align: left; border: 1px solid #e0e6ee; border-radius: 8px; color: #34445b; background: #fafbfd; }
 .suggestion-list button:hover, .multi-turn-demo button:hover { border-color: #9dbdf3; background: #f1f6ff; }
 .suggestion-list span, .multi-turn-demo button span { display: block; margin-bottom: 4px; color: #6d86a4; font-size: 8px; font-weight: 800; letter-spacing: .08em; }

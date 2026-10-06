@@ -48,10 +48,11 @@ export FALLBACK_MODEL="gpt-4o-mini"
 
 Backend는 `./gradlew bootRun`, React frontend는 `cd frontend && npm install && npm run dev`로 실행한다.
 브라우저에서 `http://localhost:5173`을 열면 기존 `/api`를 사용하는 RAG source, Tool trace, PENDING ticket 데모를 확인할 수 있다.
+데모는 `Initialize policy knowledge` 클릭 후 RAG → Access Tool → PENDING write → multi-turn → optional fallback 순서로 진행한다.
 
 ## API
 
-정책 문서를 먼저 인제스트한다.
+Demo Console에서는 `Initialize policy knowledge` 버튼으로 정책 문서를 인제스트한다. API를 직접 확인할 때는 다음 명령을 사용한다.
 
 ```bash
 curl -X POST http://localhost:8080/api/ingest

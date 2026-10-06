@@ -44,6 +44,11 @@ fallback model은 primary와 독립적으로 설정할 수 있다. 지정하지 
 export FALLBACK_MODEL="gpt-4o-mini"
 ```
 
+### Demo Console
+
+Backend는 `./gradlew bootRun`, React frontend는 `cd frontend && npm install && npm run dev`로 실행한다.
+브라우저에서 `http://localhost:5173`을 열면 기존 `/api`를 사용하는 RAG source, Tool trace, PENDING ticket 데모를 확인할 수 있다.
+
 ## API
 
 정책 문서를 먼저 인제스트한다.

@@ -14,3 +14,6 @@ __pycache__/
 .vscode/*.local.json
 .DS_Store
 .vscode/
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo

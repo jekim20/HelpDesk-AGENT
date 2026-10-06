@@ -1,0 +1,1 @@
+{"conversation":[{"role":"user","content":"PROD_DB에 접근하려고 하는데, 권한이 있는지 확인해 줄 수 있어?"},{"role":"assistant","content":"현재 PROD_DB에 대한 접근 상태를 확인해보겠습니다."},{"role":"user","content":"DEV_DB도 접근할 수 있는지 궁금해. 확인해봐."},{"role":"assistant","content":"DEV_DB에 대한 접근 상태도 체크해볼게요."},{"role":"user","content":"DEV_DB 권한을 신청해줘."}]}

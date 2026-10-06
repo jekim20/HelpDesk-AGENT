@@ -1,0 +1,349 @@
+version: '0.1'
+project: DevDesk QLoRA Tool Selection + Argument Generation
+objective: 3~4B instruct LLM을 QLoRA/SFT하여 Tool 사용 여부, Tool 선택, 핵심 arguments 생성을 개선하고 Base와 동일 held-out set으로 비교한다.
+candidate_target_total: 1000
+distribution_note: production traffic 빈도를 추정한 분포가 아니라 Tool/No-Tool 및 ticket type 간 의사결정 경계를 학습하기 위한 boundary-focused training
+  distribution.
+tool_contract:
+  getAccessStatus:
+    arguments:
+      resource:
+      - VPN
+      - DEV_DB
+      - PROD_DB
+  createTicket:
+    arguments:
+      type:
+      - ACCESS_REQUEST
+      - INCIDENT
+      - ACCOUNT_SUPPORT
+      resource_rule:
+        ACCESS_REQUEST:
+        - VPN
+        - DEV_DB
+        - PROD_DB
+        INCIDENT:
+        - VPN
+        - DEV_DB
+        - PROD_DB
+        ACCOUNT_SUPPORT:
+        - ACCOUNT_SUPPORT
+    excluded_from_training_target:
+    - reason
+    - ToolContext
+    - userId
+canonical_output:
+  tool_example:
+    decision: TOOL
+    tool_name: createTicket
+    arguments:
+      type: ACCESS_REQUEST
+      resource: PROD_DB
+  no_tool_example:
+    decision: NO_TOOL
+    tool_name: null
+    arguments: {}
+write_policy:
+  read_only: 의도가 명확하면 진술형도 상태 조회로 처리 가능
+  write: 명시적 실행 cue가 있을 때만 Tool 호출
+  implicit_write: 희망 표현만 있으면 NO_TOOL; 실제 서비스에서는 clarification 후보
+generation_metadata_required:
+- id
+- source_seed_id
+- generation_group_id
+- generation_category
+- generation_provider
+- generation_model
+- generation_mode
+- generation_stage
+- generation_run_id
+- intent
+- difficulty
+- conversation
+- target
+split_policy:
+  augmentation_source: split_hint=seed_train_candidate만 사용
+  group_split_key: source_seed_id
+  rule: 같은 source_seed_id에서 파생된 모든 sibling은 같은 train/validation split에 둔다.
+  target_after_filtering:
+    train: 약 720~750
+    validation: 약 100~130
+heldout_policy:
+  never_sample_from_augmented_train: true
+  sources:
+  - 사람이 직접 작성한 새로운 문장
+  - Train generation과 다른 prompt set으로 생성 후 사람 검수
+  - 가능하면 다른 생성 모델을 일부 사용
+  planned_sets:
+    general: 약 150~200
+    contrastive: 약 100
+    historical_regression: AG-12 등 실제 과거 오류 사례
+  style_leakage_rule: Train generation prompt/examples를 held-out 생성에 재사용하지 않는다.
+quality_gates:
+- JSON/schema validation
+- 허용 Tool name/type/resource validation
+- NO_TOOL이면 arguments가 비어 있는지 확인
+- ACCOUNT_SUPPORT이면 resource=ACCOUNT_SUPPORT인지 확인
+- duplicate/near-duplicate 제거
+- source_seed_id 기준 group split
+- 카테고리별 샘플링 사람 검수
+- held-out과 train 간 lexical/semantic near-duplicate 점검
+groups:
+- id: G01
+  name: access_status_general
+  intent: ACCESS_STATUS
+  target_candidates: 90
+  difficulty:
+  - DIRECT
+  - PARAPHRASE
+  goal: 현재 사용자의 VPN/DEV_DB/PROD_DB 접근 권한 상태 조회를 다양한 자연어 표현에서 식별한다.
+  generation_rules:
+  - 확인해줘/있는지 봐줘/쓸 수 있어?/접근 가능한가? 등 표현과 어순을 다양화한다.
+  - resource literal과 자연어 별칭(개발 DB, 운영 DB)을 적절히 섞는다.
+  - 정책 질문, 신청 요청, 장애 접수로 의미를 바꾸지 않는다.
+  anti_patterns:
+  - 동일 템플릿에서 resource만 교체
+  - 모든 문장을 명령형으로 생성
+- id: G02
+  name: access_status_distractor_contrastive
+  intent: ACCESS_STATUS
+  target_candidates: 60
+  difficulty:
+  - DISTRACTOR
+  - CONTRASTIVE
+  goal: 장애/배포/업무 맥락이 있어도 실제 행동이 현재 권한 조회이면 getAccessStatus를 선택한다.
+  generation_rules:
+  - 오도성 업무 맥락은 넣되 실제 장애 접수 요청은 넣지 않는다.
+  - 장애/오류/배포 등 특정 단어 하나에 편중하지 않는다.
+  anti_patterns:
+  - 항상 '장애 대응 때문에'로 시작
+- id: G03
+  name: access_request_general
+  intent: ACCESS_REQUEST
+  target_candidates: 90
+  difficulty:
+  - DIRECT
+  - PARAPHRASE
+  goal: 지원 resource에 대한 명시적인 권한 신청/접근 요청 실행을 식별한다.
+  generation_rules:
+  - 신청해줘/요청 넣어줘/등록해줘/티켓 올려줘 등 명시적 실행 cue를 다양화한다.
+  - 희망 진술만 있는 문장은 제외한다.
+  anti_patterns:
+  - 신청 방법/절차 질문을 섞어 target 의미를 바꿈
+- id: G04
+  name: access_request_info_to_action_override
+  intent: ACCESS_REQUEST
+  target_candidates: 20
+  difficulty:
+  - INFO_TO_ACTION_OVERRIDE
+  goal: 정보/방법 질문을 언급한 뒤 그것을 부정하고 실제 권한 신청 실행을 요구하는 문장을 처리한다.
+  generation_rules:
+  - ‘방법 말고’, ‘설명은 됐고’, ‘절차 말고 실제로’ 같은 override 구조를 다양화한다.
+  - 최종 행동은 반드시 ACCESS_REQUEST 실행이어야 한다.
+  anti_patterns:
+  - 실제 실행 cue 없이 정보 질문으로 끝남
+- id: G05
+  name: access_request_reason_context
+  intent: ACCESS_REQUEST
+  target_candidates: 70
+  difficulty:
+  - REASON_CONTEXT
+  goal: 다양한 일반 업무 사유가 있어도 권한 신청 행동을 안정적으로 식별한다.
+  generation_rules:
+  - 신규 프로젝트, 타 팀 협업, 업무 배정, 배포 준비, 데이터 확인, 담당 업무 변경 등을 고르게 사용한다.
+  - 장애/오류 사유에 편중하지 않는다.
+  anti_patterns:
+  - 사유가 모두 장애 대응
+- id: G06
+  name: access_request_intent_reason_conflict
+  intent: ACCESS_REQUEST
+  target_candidates: 80
+  difficulty:
+  - INTENT_REASON_CONFLICT
+  goal: INCIDENT를 연상시키는 사유보다 사용자의 명시적인 권한 신청 행동을 우선한다.
+  generation_rules:
+  - 장애 대응/오류 분석/접속 실패 조사/복구/문제 재현/로그 확인 등 오도성 의미군을 다양화한다.
+  - 오도성 단서는 문장 앞/중간/뒤에 다양하게 배치한다.
+  - 최종 실행 행동은 반드시 권한 신청임이 명확해야 한다.
+  - 권한 신청/접근 권한 요청/권한 요청/접근 요청처럼 ACCESS_REQUEST임을 문장 안에서 명시한다.
+  - Agent에게 권한 신청 실행을 명시적으로 요구하는 요청형 문장으로 만든다.
+  - source seed별 required_decision/required_tool_name/required_type/required_resource를 immutable constraint로 따른다.
+  - required_resource의 DEV_DB/PROD_DB/VPN 값을 그대로 사용하고 다른 supported resource로 바꾸거나 추가하지 않는다.
+  - 생성 문장에 명시한 resource는 target label의 required_resource와 반드시 일치해야 한다.
+  - 한국어로 자연스러운 사내 HelpDesk 요청을 만들고 sibling의 문장 구조와 어휘를 충분히 다양화한다.
+  anti_patterns:
+  - ‘장애’ 단어만 반복
+  - 실제 장애 접수 행동까지 함께 포함
+  - 요청 좀 해줘/요청 올려줘/처리해줘처럼 ticket type이 불분명한 generic cue만으로 끝남
+  - 실제 권한 부여로 오해할 수 있는 ‘권한 만들어줘’ 표현
+  - 접근 권한 요청할게/신청할게처럼 사용자가 자신이 행동하겠다는 진술
+  - 권한 신청할 필요가 있어/신청하고 싶어처럼 필요나 희망만 표현하고 끝남
+  - 문장 끝이 요청해줘/처리해줘여서 구체적인 Write action이 불분명함
+  - required_resource 대신 다른 supported resource를 사용하거나 둘 이상의 supported resource를 함께 사용
+  - sibling에서 단어 하나만 교체한 near-paraphrase
+- id: G07
+  name: incident_general
+  intent: INCIDENT
+  target_candidates: 80
+  difficulty:
+  - DIRECT
+  - PARAPHRASE
+  goal: 실제 서비스/접속 failure를 장애 Ticket으로 접수해 달라는 실행 요청을 식별한다.
+  generation_rules:
+  - 연결 실패, 끊김, 쿼리 오류, 반복 오류, 부분 기능 장애 등 현상 표현을 다양화한다.
+  - 접수해줘/티켓 만들어줘/문제로 남겨줘 등 실행 cue를 다양화한다.
+  anti_patterns:
+  - 장애 절차/정책 질문으로 의미가 바뀜
+- id: G08
+  name: incident_info_to_action_override
+  intent: INCIDENT
+  target_candidates: 20
+  difficulty:
+  - INFO_TO_ACTION_OVERRIDE
+  goal: 장애 절차 설명을 부정하고 실제 장애 접수를 요구하는 override 구조를 처리한다.
+  generation_rules:
+  - ‘절차 말고’, ‘설명 필요 없고’, ‘가이드 말고 지금 접수’ 등 표현을 다양화한다.
+  anti_patterns:
+  - 정보 질문으로 종료
+- id: G09
+  name: incident_contrastive_distractor
+  intent: INCIDENT
+  target_candidates: 70
+  difficulty:
+  - CONTRASTIVE
+  - DISTRACTOR
+  goal: 권한/승인/로그인 등의 표현이 섞여도 실제 요청이 장애 접수이면 INCIDENT를 선택한다.
+  generation_rules:
+  - 권한은 정상인데 기능 오류, 로그인은 되지만 쿼리 오류, 간헐적 연결 실패 등 다양한 실패 구조를 사용한다.
+  anti_patterns:
+  - ‘권한은 있는데 접속 실패’ 동일 문장 구조 반복
+- id: G10
+  name: account_support_general
+  intent: ACCOUNT_SUPPORT
+  target_candidates: 60
+  difficulty:
+  - DIRECT
+  - PARAPHRASE
+  - INFO_TO_ACTION_OVERRIDE
+  goal: 계정/로그인 문제에 대해 명시적으로 지원 Ticket 실행을 요청하면 ACCOUNT_SUPPORT를 선택한다.
+  generation_rules:
+  - 계정 잠김, 로그인 문제, 사내 계정 지원 등 표현을 다양화한다.
+  - Write action이므로 명시적 실행 cue가 있어야 한다.
+  - 현재 DevDesk contract에 맞춰 resource는 ACCOUNT_SUPPORT로 고정한다.
+  anti_patterns:
+  - ACCOUNT 또는 LOGIN 같은 임의 resource 생성
+  - 지원받고 싶다는 희망만으로 Tool 호출
+  target_contract:
+    type: ACCOUNT_SUPPORT
+    resource: ACCOUNT_SUPPORT
+- id: G11
+  name: account_support_contrastive_conflict
+  intent: ACCOUNT_SUPPORT
+  target_candidates: 40
+  difficulty:
+  - CONTRASTIVE
+  - FAILURE_KEYWORD_CONFLICT
+  goal: ‘실패/오류’ 단어가 있어도 사용자가 명시적으로 계정 지원 Ticket을 요청하면 ACCOUNT_SUPPORT를 선택한다.
+  generation_rules:
+  - 로그인 실패/계정 오류 등 INCIDENT를 연상시킬 수 있는 단서를 포함한다.
+  - 최종 실행 요청은 명확한 계정 지원이어야 한다.
+  anti_patterns:
+  - VPN/DB 자체의 장애 접수를 ACCOUNT_SUPPORT로 오라벨
+  target_contract:
+    type: ACCOUNT_SUPPORT
+    resource: ACCOUNT_SUPPORT
+- id: G12
+  name: no_tool_policy_howto
+  intent: NO_TOOL
+  target_candidates: 90
+  difficulty:
+  - POLICY
+  - HOW_TO
+  - NO_TOOL_LOOKALIKE
+  goal: 권한/장애/계정 관련 단어가 있어도 정책·절차·조건·이유·소요시간 질문이면 Tool을 호출하지 않는다.
+  generation_rules:
+  - 지원 resource와 Tool 관련 단어를 일부 포함해 hard negative를 만든다.
+  - 실제 실행 요청 cue가 들어가면 안 된다.
+  anti_patterns:
+  - 신청해줘/접수해줘/만들어줘 같은 명시적 실행 cue 포함
+- id: G13
+  name: no_tool_unsupported
+  intent: NO_TOOL
+  target_candidates: 60
+  difficulty:
+  - UNSUPPORTED_RESOURCE
+  - UNSUPPORTED_ACTION
+  goal: 지원하지 않는 resource 또는 지원하지 않는 Tool 행동을 기존 schema에 억지로 매핑하지 않는다.
+  generation_rules:
+  - resource 하위 예시에는 STAGING_DB, TEST_DB, QA_DB, GPU_SERVER 등 근접 이름을 포함한다.
+  - 지원하지 않는 행동은 현재 Tool schema에 존재하지 않는 요청으로 구성한다.
+  - ACCOUNT_SUPPORT는 실제 지원 type이므로 unsupported type으로 취급하지 않는다.
+  anti_patterns:
+  - 미지원 resource를 DEV_DB/PROD_DB로 임의 치환
+- id: G14
+  name: no_tool_ambiguous_implicit_write
+  intent: NO_TOOL
+  target_candidates: 70
+  difficulty:
+  - AMBIGUOUS
+  - IMPLICIT_WRITE
+  goal: resource/type/action이 불충분하거나 Write 희망만 표현된 경우 성급하게 Tool을 실행하지 않는다.
+  generation_rules:
+  - ‘DB 좀 처리해줘’, ‘VPN이 필요해’, ‘계정 지원받고 싶어’ 등 모호성을 다양화한다.
+  - 실제 서비스에서는 clarification 후보지만 이번 routing target은 NO_TOOL이다.
+  anti_patterns:
+  - 실제로는 target이 명확한 문장을 NO_TOOL로 라벨
+- id: G15
+  name: multi_turn
+  intent: MIXED
+  target_candidates: 100
+  difficulty:
+  - MULTI_TURN
+  goal: 대화 context에서 resource와 행동을 복원하고, 중간 전환이 있어도 마지막 사용자 의도를 올바르게 처리한다.
+  subgroups:
+  - name: single_resource_write
+    target_candidates: 25
+    source_split: seed_train_candidate
+    source_intent: ACCESS_REQUEST
+    resource_count_requirement: supported resource 정확히 1개
+    final_turn_requirement: 마지막 user turn은 명시적인 권한 Write 실행 요청
+    target_requirement: TOOL / ACCESS_REQUEST
+  - name: multi_resource_write
+    target_candidates: 25
+    source_split: seed_train_candidate
+    source_intent: ACCESS_REQUEST
+    resource_count_requirement: supported resource 2개 이상
+    final_turn_requirement: 마지막 user turn은 resource 이름을 반복하지 않고 지시어로 가장 최근 resource를 참조하는 명시적 권한 Write 실행 요청
+    target_requirement: TOOL / ACCESS_REQUEST
+  - name: single_resource_howto
+    target_candidates: 25
+    source_split: seed_train_candidate
+    source_intent: NO_TOOL
+    resource_count_requirement: supported resource 정확히 1개
+    final_turn_requirement: 마지막 user turn은 해당 resource의 방법, 절차 또는 조건을 묻는 정보 요청이며 실행 요청을 포함하지 않음
+    target_requirement: NO_TOOL
+  - name: multi_resource_howto
+    target_candidates: 25
+    source_split: seed_train_candidate
+    source_intent: NO_TOOL
+    resource_count_requirement: supported resource 2개 이상
+    final_turn_requirement: 두 resource는 서로 다른 turn에서 순차적으로 제시하고, 마지막 user turn은 지시어로 가장 최근 resource의 방법 또는 절차를 묻는 정보 요청이며 실행 요청을 포함하지 않음
+    target_requirement: NO_TOOL
+  generation_rules:
+  - 항상 바로 직전 resource만 참조하는 단순 패턴으로 쏠리지 않게 한다.
+  - Write subtype은 ACCESS_REQUEST, how-to subtype은 NO_TOOL target을 유지한다.
+  - Write subtype의 explicit execution request는 마지막 user turn에만 두고, 이전 user turn은 status/context로 제한한다.
+  - Write subtype의 마지막 user turn은 처음 등장하는 explicit execution request여야 한다.
+  - How-to subtype은 conversation 전체 user turn에서 실제 실행 요청을 포함하지 않는다.
+  - 모든 subtype의 assistant turn은 neutral contextual acknowledgement 또는 정보 안내만 사용한다.
+  - Assistant가 Tool을 실행했거나 접수/등록/신청/티켓 생성/처리를 실행하겠다고 약속하지 않는다.
+  - 마지막 user turn만 읽어서는 정답을 확정하기 어려운 사례를 포함한다.
+  - 한 batch에서 같은 conversation skeleton을 반복하지 않는다.
+  - 단어 몇 개만 바꾼 sibling paraphrase를 만들지 않는다.
+  - Write target은 `신청해줘`, `요청 등록해줘` 등 명시적인 실행 요구를 사용한다.
+  - NO_TOOL target은 `방법`, `절차`, `조건`, `과정` 등을 묻는 정보 요청이어야 하며 실제 실행 요청을 섞지 않는다.
+  - assistant history도 자연스러운 한국어와 띄어쓰기를 유지한다.
+  anti_patterns:
+  - 모든 예시가 PROD_DB → 그 권한 구조
+  - 마지막 user turn 전에 신청해줘/요청해줘/등록해줘/접수해줘/티켓 만들어줘 같은 실행 요구
+  - assistant가 접수할게요/등록해드릴게요/신청을 진행하겠습니다처럼 Tool 실행을 주장하거나 약속

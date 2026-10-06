@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 
 import com.devdesk.agent.ModelFallbackExecutor.ExecutionResult;
 import com.devdesk.agent.TicketRepository.TicketType;
+import com.devdesk.agent.ToolInvocationTracker.ToolCallInfo;
 
 @Service
 public class HelpDeskService {
@@ -37,6 +38,7 @@ public class HelpDeskService {
     private final ModelFallbackExecutor fallbackExecutor;
     private final ToolInvocationTracker invocationTracker;
     private final UserInputSafetyAdvisor userInputSafety;
+    private final PromptInjectionGuard promptInjectionGuard;
     private final Map<String, String> conversationResources = new ConcurrentHashMap<>();
 
     public HelpDeskService(@Qualifier("devDeskPrimaryClient") ChatClient primaryClient,
@@ -47,7 +49,8 @@ public class HelpDeskService {
                            TicketTools ticketTools,
                            ModelFallbackExecutor fallbackExecutor,
                            ToolInvocationTracker invocationTracker,
-                           UserInputSafetyAdvisor userInputSafety) {
+                           UserInputSafetyAdvisor userInputSafety,
+                           PromptInjectionGuard promptInjectionGuard) {
         this.primaryClient = primaryClient;
         this.fallbackClient = fallbackClient;
         this.memory = memory;
@@ -57,13 +60,14 @@ public class HelpDeskService {
         this.fallbackExecutor = fallbackExecutor;
         this.invocationTracker = invocationTracker;
         this.userInputSafety = userInputSafety;
+        this.promptInjectionGuard = promptInjectionGuard;
     }
 
     public ChatResult chat(String question, String sessionId, String userId, boolean simulatePrimaryFailure) {
         String conversationId = conversationId(userId, sessionId);
         String validation = validate(question, sessionId, userId);
         if (validation != null) {
-            return new ChatResult(validation, sessionId, List.of(), false, false);
+            return new ChatResult(validation, sessionId, List.of(), false, List.of(), false);
         }
 
         String resource = explicitResource(question);
@@ -76,14 +80,15 @@ public class HelpDeskService {
         if (isUnsupportedAccessLookup(question, resource)) {
             return new ChatResult(
                     "지원하지 않는 리소스입니다. VPN, DEV_DB, PROD_DB만 조회할 수 있습니다.",
-                    sessionId, List.of(), false, false);
+                    sessionId, List.of(), false, List.of(), false);
         }
         if (isAccessLookup(question, resource)) {
             invocationTracker.begin();
             try {
                 String answer = accessTools.getAccessStatus(resource, toolContext(userId));
                 remember(conversationId, question, answer);
-                return new ChatResult(answer, sessionId, List.of(), true, false);
+                return new ChatResult(answer, sessionId, List.of(), true,
+                        invocationTracker.snapshot(), false);
             } finally {
                 invocationTracker.clear();
             }
@@ -95,7 +100,8 @@ public class HelpDeskService {
             try {
                 String answer = ticketTools.createTicket(type, target, question, toolContext(userId));
                 remember(conversationId, question, answer);
-                return new ChatResult(answer, sessionId, List.of(), true, false);
+                return new ChatResult(answer, sessionId, List.of(), true,
+                        invocationTracker.snapshot(), false);
             } finally {
                 invocationTracker.clear();
             }
@@ -113,7 +119,7 @@ public class HelpDeskService {
             Supplier<String> fallback = () -> callModel(fallbackClient, contextualQuestion, conversationId, userId);
             ExecutionResult result = fallbackExecutor.execute(primary, fallback);
             return new ChatResult(result.answer(), sessionId, findSources(contextualQuestion),
-                    invocationTracker.wasInvoked(), result.fallbackUsed());
+                    invocationTracker.wasInvoked(), invocationTracker.snapshot(), result.fallbackUsed());
         } finally {
             invocationTracker.clear();
         }
@@ -139,6 +145,7 @@ public class HelpDeskService {
         if (sessionId == null || sessionId.isBlank() || userId == null || userId.isBlank()) {
             return "sessionId와 userId는 필수입니다.";
         }
+        if (promptInjectionGuard.isSuspicious(question)) return PromptInjectionGuard.BLOCK_RESPONSE;
         return userInputSafety.rejectionFor(question);
     }
 
@@ -172,6 +179,12 @@ public class HelpDeskService {
     }
 
     private TicketType ticketType(String question) {
+        boolean accessApplication = ((question.contains("권한") || question.contains("접근"))
+                && question.contains("신청"))
+                || question.contains("권한 요청") || question.contains("접근 요청");
+        if (accessApplication) {
+            return TicketType.ACCESS_REQUEST;
+        }
         if (question.contains("장애") || question.contains("실패") || question.contains("접속")) {
             return TicketType.INCIDENT;
         }
@@ -224,5 +237,5 @@ public class HelpDeskService {
     }
 
     public record ChatResult(String answer, String sessionId, List<String> sources,
-                             boolean toolUsed, boolean fallbackUsed) {}
+                             boolean toolUsed, List<ToolCallInfo> toolCalls, boolean fallbackUsed) {}
 }

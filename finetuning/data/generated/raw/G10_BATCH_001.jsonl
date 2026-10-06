@@ -1,0 +1,5 @@
+{"source_seed_id": "S056", "difficulty": ["DIRECT", "PARAPHRASE", "INFO_TO_ACTION_OVERRIDE"], "conversation": [{"role": "user", "content": "내 계정이 잠겼어. 계정 지원 티켓 만들어줘."}]}
+{"source_seed_id": "S057", "difficulty": ["DIRECT", "PARAPHRASE", "INFO_TO_ACTION_OVERRIDE"], "conversation": [{"role": "user", "content": "회사 계정 로그인이 안 돼. 계정 지원 요청 접수해줘."}]}
+{"source_seed_id": "S058", "difficulty": ["DIRECT", "PARAPHRASE", "INFO_TO_ACTION_OVERRIDE"], "conversation": [{"role": "user", "content": "사내 계정에 문제가 생겼어. 지원 티켓 하나 올려줘."}]}
+{"source_seed_id": "S059", "difficulty": ["DIRECT", "PARAPHRASE", "INFO_TO_ACTION_OVERRIDE"], "conversation": [{"role": "user", "content": "계정 지원 절차 설명 말고 실제 지원 티켓을 등록해줘."}]}
+{"source_seed_id": "S056", "difficulty": ["DIRECT", "PARAPHRASE", "INFO_TO_ACTION_OVERRIDE"], "conversation": [{"role": "user", "content": "로그인 문제를 확인받고 싶어. 계정 지원 건 만들어줘."}]}

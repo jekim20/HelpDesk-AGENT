@@ -1,0 +1,10 @@
+{"source_seed_id": "S016", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "장애 대응 로그를 확인해야 해서 PROD_DB 권한 신청해줘."}]}
+{"source_seed_id": "S017", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "VPN 접근 요청을 넣어줘. 오류 분석 업무에 필요해."}]}
+{"source_seed_id": "S018", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "접속 실패 원인을 조사하려고 해. DEV_DB 권한을 신청해줘."}]}
+{"source_seed_id": "S016", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "복구 작업 때문에 운영 DB 접근 권한이 필요해. 요청 등록해줘."}]}
+{"source_seed_id": "S017", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "VPN 권한 신청 건 올려줘. 문제 재현을 해야 해."}]}
+{"source_seed_id": "S018", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "로그 분석 업무를 맡았으니 개발 DB 접근 요청을 접수해줘."}]}
+{"source_seed_id": "S016", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "서비스 오류를 살펴볼 수 있도록 PROD_DB 권한 신청해줘."}]}
+{"source_seed_id": "S017", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "VPN에서 장애 원인을 확인해야 해. 접근 권한 요청 넣어줘."}]}
+{"source_seed_id": "S018", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "재현 테스트 때문에 DEV_DB를 봐야 하니 권한 신청해줘."}]}
+{"source_seed_id": "S016", "difficulty": ["INTENT_REASON_CONFLICT"], "conversation": [{"role": "user", "content": "운영 DB 권한 요청을 등록해줘. 복구 이후 검증 업무 때문이야."}]}

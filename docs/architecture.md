@@ -19,7 +19,7 @@ HelpDeskService
        ├─ primary client
        └─ fallback client (primary failure 시 1회)
   ↓
-answer + sources + toolUsed + fallbackUsed
+answer + sources + toolUsed + toolCalls[] + fallbackUsed
 
 Agent Scenario Evaluation
   └─ 실제 /api/chat 응답으로 task/tool/source/safety/memory/latency 검증
@@ -38,6 +38,12 @@ Agent Scenario Evaluation
 ### write operation에 승인 gate 유지
 
 `TicketTools`는 `ACCESS_REQUEST`, `INCIDENT`, `ACCOUNT_SUPPORT`를 만들 수 있지만 결과는 항상 `PENDING`이다. Agent는 권한 부여나 장애 해결을 직접 수행하지 않는다.
+
+### Tool 실행 결과 추적
+
+`ToolAuditAspect`가 Tool 이름, allowlist argument, 마스킹된 결과, 업무 성공 여부와 Tool 내부 실행 시간을 수집한다.
+`ToolInvocationTracker`는 한 요청의 호출을 순서대로 보관하고 응답 생성 후 반드시 비운다. 기존 `toolUsed`는 하위 호환을 위해 유지한다.
+Access Tool은 `resource`, Ticket Tool은 `type`과 `resource`만 공개하며 `ToolContext`, `userId`, 티켓 `reason`은 제외한다.
 
 ### 실패를 성공으로 바꾸지 않음
 

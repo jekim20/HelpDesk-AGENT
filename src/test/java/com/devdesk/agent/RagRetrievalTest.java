@@ -73,6 +73,7 @@ class RagRetrievalTest {
         ChatClient testClient = ChatClient.create(prompt -> new ChatResponse(
                 List.of(new Generation(new AssistantMessage("정책 문서 기반 테스트 응답")))));
         TicketRepository ticketRepository = new TicketRepository();
+        ToolInvocationTracker invocationTracker = new ToolInvocationTracker();
         HelpDeskService service = new HelpDeskService(
                 testClient,
                 testClient,
@@ -81,11 +82,12 @@ class RagRetrievalTest {
                         .maxMessages(20)
                         .build(),
                 vectorStore,
-                new AccessTools(new AccessRepository()),
-                new TicketTools(ticketRepository),
+                new AccessTools(new AccessRepository(), invocationTracker),
+                new TicketTools(ticketRepository, invocationTracker),
                 new ModelFallbackExecutor(),
-                new ToolInvocationTracker(),
-                new UserInputSafetyAdvisor());
+                invocationTracker,
+                new UserInputSafetyAdvisor(),
+                new PromptInjectionGuard());
         ChatController controller = new ChatController(
                 service, mock(IngestService.class), ticketRepository);
 

@@ -1,0 +1,5 @@
+{"source_seed_id": "S033", "difficulty": ["POLICY", "HOW_TO", "NO_TOOL_LOOKALIKE"], "conversation": [{"role": "user", "content": "VPN 권한 신청 절차는 어떻게 진행돼?"}]}
+{"source_seed_id": "S034", "difficulty": ["POLICY", "HOW_TO", "NO_TOOL_LOOKALIKE"], "conversation": [{"role": "user", "content": "운영 DB 접근 승인을 받으려면 어떤 조건이 필요해?"}]}
+{"source_seed_id": "S035", "difficulty": ["POLICY", "HOW_TO", "NO_TOOL_LOOKALIKE"], "conversation": [{"role": "user", "content": "계정이 잠겼을 때 지원 요청 절차를 알려줘."}]}
+{"source_seed_id": "S036", "difficulty": ["POLICY", "HOW_TO", "NO_TOOL_LOOKALIKE"], "conversation": [{"role": "user", "content": "DEV_DB 권한 신청은 보통 얼마나 걸려?"}]}
+{"source_seed_id": "S037", "difficulty": ["POLICY", "HOW_TO", "NO_TOOL_LOOKALIKE"], "conversation": [{"role": "user", "content": "장애 티켓을 접수할 때 필요한 정보가 뭐야?"}]}

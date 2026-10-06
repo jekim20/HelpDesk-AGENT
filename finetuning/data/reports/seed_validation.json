@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "total": 65,
+  "errors": [],
+  "duplicateIds": [],
+  "splitCounts": {
+    "heldout_candidate": 7,
+    "historical_regression_candidate": 1,
+    "seed_train_candidate": 57
+  },
+  "augmentationSourceCount": 57,
+  "excludedFromAugmentation": {
+    "heldout_candidate": 7,
+    "historical_regression_candidate": 1
+  }
+}

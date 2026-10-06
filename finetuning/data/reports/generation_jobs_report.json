@@ -1,0 +1,1976 @@
+{
+  "status": "PASS",
+  "dryRun": false,
+  "jobCount": 18,
+  "plannedCandidates": 1000,
+  "planValidation": {
+    "groupCount": 15,
+    "candidateTargetTotal": 1000,
+    "groupTargetTotal": 1000,
+    "g15SubgroupTotal": 100
+  },
+  "errors": [],
+  "jobs": [
+    {
+      "job_id": "G01_PLAN_001",
+      "generation_group_id": "G01_BATCH_001",
+      "generation_category": "access_status_general",
+      "source_seed_ids": [
+        "S001",
+        "S002",
+        "S003",
+        "S004",
+        "S005",
+        "S008",
+        "S010"
+      ],
+      "target_count": 90
+    },
+    {
+      "job_id": "G02_PLAN_001",
+      "generation_group_id": "G02_BATCH_001",
+      "generation_category": "access_status_distractor_contrastive",
+      "source_seed_ids": [
+        "S006",
+        "S007",
+        "S009"
+      ],
+      "target_count": 60
+    },
+    {
+      "job_id": "G03_PLAN_001",
+      "generation_group_id": "G03_BATCH_001",
+      "generation_category": "access_request_general",
+      "source_seed_ids": [
+        "S011",
+        "S012",
+        "S013",
+        "S014",
+        "S015",
+        "S021",
+        "S022",
+        "S054",
+        "S055"
+      ],
+      "target_count": 90
+    },
+    {
+      "job_id": "G04_PLAN_001",
+      "generation_group_id": "G04_BATCH_001",
+      "generation_category": "access_request_info_to_action_override",
+      "source_seed_ids": [
+        "S020"
+      ],
+      "target_count": 20
+    },
+    {
+      "job_id": "G05_PLAN_001",
+      "generation_group_id": "G05_BATCH_001",
+      "generation_category": "access_request_reason_context",
+      "source_seed_ids": [
+        "S014",
+        "S015",
+        "S021",
+        "S022",
+        "S054",
+        "S055"
+      ],
+      "target_count": 70
+    },
+    {
+      "job_id": "G06_PLAN_001",
+      "generation_group_id": "G06_BATCH_001",
+      "generation_category": "access_request_intent_reason_conflict",
+      "source_seed_ids": [
+        "S016",
+        "S017",
+        "S018"
+      ],
+      "target_count": 80
+    },
+    {
+      "job_id": "G07_PLAN_001",
+      "generation_group_id": "G07_BATCH_001",
+      "generation_category": "incident_general",
+      "source_seed_ids": [
+        "S023",
+        "S024",
+        "S025",
+        "S026",
+        "S027",
+        "S031"
+      ],
+      "target_count": 80
+    },
+    {
+      "job_id": "G08_PLAN_001",
+      "generation_group_id": "G08_BATCH_001",
+      "generation_category": "incident_info_to_action_override",
+      "source_seed_ids": [
+        "S032"
+      ],
+      "target_count": 20
+    },
+    {
+      "job_id": "G09_PLAN_001",
+      "generation_group_id": "G09_BATCH_001",
+      "generation_category": "incident_contrastive_distractor",
+      "source_seed_ids": [
+        "S028",
+        "S030"
+      ],
+      "target_count": 70
+    },
+    {
+      "job_id": "G10_PLAN_001",
+      "generation_group_id": "G10_BATCH_001",
+      "generation_category": "account_support_general",
+      "source_seed_ids": [
+        "S056",
+        "S057",
+        "S058",
+        "S059"
+      ],
+      "target_count": 60
+    },
+    {
+      "job_id": "G11_PLAN_001",
+      "generation_group_id": "G11_BATCH_001",
+      "generation_category": "account_support_contrastive_conflict",
+      "source_seed_ids": [
+        "S057",
+        "S058"
+      ],
+      "target_count": 40
+    },
+    {
+      "job_id": "G12_PLAN_001",
+      "generation_group_id": "G12_BATCH_001",
+      "generation_category": "no_tool_policy_howto",
+      "source_seed_ids": [
+        "S033",
+        "S034",
+        "S035",
+        "S036",
+        "S037",
+        "S038",
+        "S039",
+        "S040",
+        "S046",
+        "S060"
+      ],
+      "target_count": 90
+    },
+    {
+      "job_id": "G13_PLAN_001",
+      "generation_group_id": "G13_BATCH_001",
+      "generation_category": "no_tool_unsupported",
+      "source_seed_ids": [
+        "S041",
+        "S042",
+        "S051"
+      ],
+      "target_count": 60
+    },
+    {
+      "job_id": "G14_PLAN_001",
+      "generation_group_id": "G14_BATCH_001",
+      "generation_category": "no_tool_ambiguous_implicit_write",
+      "source_seed_ids": [
+        "S048",
+        "S049",
+        "S052",
+        "S053",
+        "S061"
+      ],
+      "target_count": 70
+    },
+    {
+      "job_id": "G15_single_resource_write_PLAN_001",
+      "generation_group_id": "G15_BATCH_001",
+      "generation_category": "multi_turn",
+      "source_seed_ids": [
+        "S011",
+        "S012",
+        "S013",
+        "S014",
+        "S015",
+        "S016",
+        "S017",
+        "S018",
+        "S019",
+        "S020",
+        "S021",
+        "S022",
+        "S043",
+        "S045",
+        "S054",
+        "S055"
+      ],
+      "target_count": 25,
+      "multi_turn_subtype": "single_resource_write",
+      "scenario_specs": [
+        {
+          "scenario_index": 1,
+          "source_seed_id": "S011",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "DEV_DB"
+            }
+          },
+          "required_resource": "DEV_DB",
+          "scenario_resources": [
+            "DEV_DB"
+          ],
+          "required_sequence": "DEV_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 2,
+          "source_seed_id": "S012",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 3,
+          "source_seed_id": "S013",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "VPN"
+            }
+          },
+          "required_resource": "VPN",
+          "scenario_resources": [
+            "VPN"
+          ],
+          "required_sequence": "VPN user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 4,
+          "source_seed_id": "S014",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "DEV_DB"
+            }
+          },
+          "required_resource": "DEV_DB",
+          "scenario_resources": [
+            "DEV_DB"
+          ],
+          "required_sequence": "DEV_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 5,
+          "source_seed_id": "S015",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 6,
+          "source_seed_id": "S016",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 7,
+          "source_seed_id": "S017",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "VPN"
+            }
+          },
+          "required_resource": "VPN",
+          "scenario_resources": [
+            "VPN"
+          ],
+          "required_sequence": "VPN user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 8,
+          "source_seed_id": "S018",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "DEV_DB"
+            }
+          },
+          "required_resource": "DEV_DB",
+          "scenario_resources": [
+            "DEV_DB"
+          ],
+          "required_sequence": "DEV_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 9,
+          "source_seed_id": "S019",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 10,
+          "source_seed_id": "S020",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "DEV_DB"
+            }
+          },
+          "required_resource": "DEV_DB",
+          "scenario_resources": [
+            "DEV_DB"
+          ],
+          "required_sequence": "DEV_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 11,
+          "source_seed_id": "S021",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 12,
+          "source_seed_id": "S022",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "VPN"
+            }
+          },
+          "required_resource": "VPN",
+          "scenario_resources": [
+            "VPN"
+          ],
+          "required_sequence": "VPN user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 13,
+          "source_seed_id": "S043",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 14,
+          "source_seed_id": "S045",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 15,
+          "source_seed_id": "S054",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "DEV_DB"
+            }
+          },
+          "required_resource": "DEV_DB",
+          "scenario_resources": [
+            "DEV_DB"
+          ],
+          "required_sequence": "DEV_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 16,
+          "source_seed_id": "S055",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 17,
+          "source_seed_id": "S011",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "DEV_DB"
+            }
+          },
+          "required_resource": "DEV_DB",
+          "scenario_resources": [
+            "DEV_DB"
+          ],
+          "required_sequence": "DEV_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 18,
+          "source_seed_id": "S012",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 19,
+          "source_seed_id": "S013",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "VPN"
+            }
+          },
+          "required_resource": "VPN",
+          "scenario_resources": [
+            "VPN"
+          ],
+          "required_sequence": "VPN user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 20,
+          "source_seed_id": "S014",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "DEV_DB"
+            }
+          },
+          "required_resource": "DEV_DB",
+          "scenario_resources": [
+            "DEV_DB"
+          ],
+          "required_sequence": "DEV_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 21,
+          "source_seed_id": "S015",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 22,
+          "source_seed_id": "S016",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 23,
+          "source_seed_id": "S017",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "VPN"
+            }
+          },
+          "required_resource": "VPN",
+          "scenario_resources": [
+            "VPN"
+          ],
+          "required_sequence": "VPN user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 24,
+          "source_seed_id": "S018",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "DEV_DB"
+            }
+          },
+          "required_resource": "DEV_DB",
+          "scenario_resources": [
+            "DEV_DB"
+          ],
+          "required_sequence": "DEV_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 25,
+          "source_seed_id": "S019",
+          "generation_subtype": "single_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        }
+      ]
+    },
+    {
+      "job_id": "G15_multi_resource_write_PLAN_001",
+      "generation_group_id": "G15_BATCH_001",
+      "generation_category": "multi_turn",
+      "source_seed_ids": [
+        "S011",
+        "S012",
+        "S013",
+        "S014",
+        "S015",
+        "S016",
+        "S017",
+        "S018",
+        "S019",
+        "S020",
+        "S021",
+        "S022",
+        "S043",
+        "S045",
+        "S054",
+        "S055"
+      ],
+      "target_count": 25,
+      "multi_turn_subtype": "multi_resource_write",
+      "scenario_specs": [
+        {
+          "scenario_index": 1,
+          "source_seed_id": "S011",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "DEV_DB"
+            }
+          },
+          "required_resource": "DEV_DB",
+          "scenario_resources": [
+            "PROD_DB",
+            "DEV_DB"
+          ],
+          "distractor_resource": "PROD_DB",
+          "required_sequence": "PROD_DB user turn -> assistant -> DEV_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 2,
+          "source_seed_id": "S012",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "VPN",
+            "PROD_DB"
+          ],
+          "distractor_resource": "VPN",
+          "required_sequence": "VPN user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 3,
+          "source_seed_id": "S013",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "VPN"
+            }
+          },
+          "required_resource": "VPN",
+          "scenario_resources": [
+            "DEV_DB",
+            "VPN"
+          ],
+          "distractor_resource": "DEV_DB",
+          "required_sequence": "DEV_DB user turn -> assistant -> VPN user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 4,
+          "source_seed_id": "S014",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "DEV_DB"
+            }
+          },
+          "required_resource": "DEV_DB",
+          "scenario_resources": [
+            "VPN",
+            "DEV_DB"
+          ],
+          "distractor_resource": "VPN",
+          "required_sequence": "VPN user turn -> assistant -> DEV_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 5,
+          "source_seed_id": "S015",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "DEV_DB",
+            "PROD_DB"
+          ],
+          "distractor_resource": "DEV_DB",
+          "required_sequence": "DEV_DB user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 6,
+          "source_seed_id": "S016",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "VPN",
+            "PROD_DB"
+          ],
+          "distractor_resource": "VPN",
+          "required_sequence": "VPN user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 7,
+          "source_seed_id": "S017",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "VPN"
+            }
+          },
+          "required_resource": "VPN",
+          "scenario_resources": [
+            "DEV_DB",
+            "VPN"
+          ],
+          "distractor_resource": "DEV_DB",
+          "required_sequence": "DEV_DB user turn -> assistant -> VPN user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 8,
+          "source_seed_id": "S018",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "DEV_DB"
+            }
+          },
+          "required_resource": "DEV_DB",
+          "scenario_resources": [
+            "VPN",
+            "DEV_DB"
+          ],
+          "distractor_resource": "VPN",
+          "required_sequence": "VPN user turn -> assistant -> DEV_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 9,
+          "source_seed_id": "S019",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "DEV_DB",
+            "PROD_DB"
+          ],
+          "distractor_resource": "DEV_DB",
+          "required_sequence": "DEV_DB user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 10,
+          "source_seed_id": "S020",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "DEV_DB"
+            }
+          },
+          "required_resource": "DEV_DB",
+          "scenario_resources": [
+            "VPN",
+            "DEV_DB"
+          ],
+          "distractor_resource": "VPN",
+          "required_sequence": "VPN user turn -> assistant -> DEV_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 11,
+          "source_seed_id": "S021",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "DEV_DB",
+            "PROD_DB"
+          ],
+          "distractor_resource": "DEV_DB",
+          "required_sequence": "DEV_DB user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 12,
+          "source_seed_id": "S022",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "VPN"
+            }
+          },
+          "required_resource": "VPN",
+          "scenario_resources": [
+            "PROD_DB",
+            "VPN"
+          ],
+          "distractor_resource": "PROD_DB",
+          "required_sequence": "PROD_DB user turn -> assistant -> VPN user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 13,
+          "source_seed_id": "S043",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "DEV_DB",
+            "PROD_DB"
+          ],
+          "distractor_resource": "DEV_DB",
+          "required_sequence": "DEV_DB user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 14,
+          "source_seed_id": "S045",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "VPN",
+            "PROD_DB"
+          ],
+          "distractor_resource": "VPN",
+          "required_sequence": "VPN user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 15,
+          "source_seed_id": "S054",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "DEV_DB"
+            }
+          },
+          "required_resource": "DEV_DB",
+          "scenario_resources": [
+            "PROD_DB",
+            "DEV_DB"
+          ],
+          "distractor_resource": "PROD_DB",
+          "required_sequence": "PROD_DB user turn -> assistant -> DEV_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 16,
+          "source_seed_id": "S055",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "VPN",
+            "PROD_DB"
+          ],
+          "distractor_resource": "VPN",
+          "required_sequence": "VPN user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 17,
+          "source_seed_id": "S011",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "DEV_DB"
+            }
+          },
+          "required_resource": "DEV_DB",
+          "scenario_resources": [
+            "PROD_DB",
+            "DEV_DB"
+          ],
+          "distractor_resource": "PROD_DB",
+          "required_sequence": "PROD_DB user turn -> assistant -> DEV_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 18,
+          "source_seed_id": "S012",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "VPN",
+            "PROD_DB"
+          ],
+          "distractor_resource": "VPN",
+          "required_sequence": "VPN user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 19,
+          "source_seed_id": "S013",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "VPN"
+            }
+          },
+          "required_resource": "VPN",
+          "scenario_resources": [
+            "DEV_DB",
+            "VPN"
+          ],
+          "distractor_resource": "DEV_DB",
+          "required_sequence": "DEV_DB user turn -> assistant -> VPN user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 20,
+          "source_seed_id": "S014",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "DEV_DB"
+            }
+          },
+          "required_resource": "DEV_DB",
+          "scenario_resources": [
+            "VPN",
+            "DEV_DB"
+          ],
+          "distractor_resource": "VPN",
+          "required_sequence": "VPN user turn -> assistant -> DEV_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 21,
+          "source_seed_id": "S015",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "DEV_DB",
+            "PROD_DB"
+          ],
+          "distractor_resource": "DEV_DB",
+          "required_sequence": "DEV_DB user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 22,
+          "source_seed_id": "S016",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "VPN",
+            "PROD_DB"
+          ],
+          "distractor_resource": "VPN",
+          "required_sequence": "VPN user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 23,
+          "source_seed_id": "S017",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "VPN"
+            }
+          },
+          "required_resource": "VPN",
+          "scenario_resources": [
+            "DEV_DB",
+            "VPN"
+          ],
+          "distractor_resource": "DEV_DB",
+          "required_sequence": "DEV_DB user turn -> assistant -> VPN user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 24,
+          "source_seed_id": "S018",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "DEV_DB"
+            }
+          },
+          "required_resource": "DEV_DB",
+          "scenario_resources": [
+            "VPN",
+            "DEV_DB"
+          ],
+          "distractor_resource": "VPN",
+          "required_sequence": "VPN user turn -> assistant -> DEV_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        },
+        {
+          "scenario_index": 25,
+          "source_seed_id": "S019",
+          "generation_subtype": "multi_resource_write",
+          "target_contract": {
+            "decision": "TOOL",
+            "tool_name": "createTicket",
+            "arguments": {
+              "type": "ACCESS_REQUEST",
+              "resource": "PROD_DB"
+            }
+          },
+          "required_resource": "PROD_DB",
+          "scenario_resources": [
+            "DEV_DB",
+            "PROD_DB"
+          ],
+          "distractor_resource": "DEV_DB",
+          "required_sequence": "DEV_DB user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 explicit ACCESS_REQUEST user turn"
+        }
+      ]
+    },
+    {
+      "job_id": "G15_single_resource_howto_PLAN_001",
+      "generation_group_id": "G15_BATCH_001",
+      "generation_category": "multi_turn",
+      "source_seed_ids": [
+        "S033",
+        "S034",
+        "S035",
+        "S036",
+        "S037",
+        "S038",
+        "S039",
+        "S040",
+        "S041",
+        "S042",
+        "S046",
+        "S048",
+        "S049",
+        "S051",
+        "S052",
+        "S053",
+        "S060",
+        "S061"
+      ],
+      "target_count": 25,
+      "multi_turn_subtype": "single_resource_howto",
+      "scenario_specs": [
+        {
+          "scenario_index": 1,
+          "source_seed_id": "S033",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB"
+          ],
+          "required_sequence": "DEV_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 2,
+          "source_seed_id": "S034",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 3,
+          "source_seed_id": "S035",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "VPN"
+          ],
+          "required_sequence": "VPN user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 4,
+          "source_seed_id": "S036",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB"
+          ],
+          "required_sequence": "DEV_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 5,
+          "source_seed_id": "S037",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 6,
+          "source_seed_id": "S038",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "VPN"
+          ],
+          "required_sequence": "VPN user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 7,
+          "source_seed_id": "S039",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB"
+          ],
+          "required_sequence": "DEV_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 8,
+          "source_seed_id": "S040",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 9,
+          "source_seed_id": "S041",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "VPN"
+          ],
+          "required_sequence": "VPN user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 10,
+          "source_seed_id": "S042",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB"
+          ],
+          "required_sequence": "DEV_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 11,
+          "source_seed_id": "S046",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 12,
+          "source_seed_id": "S048",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "VPN"
+          ],
+          "required_sequence": "VPN user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 13,
+          "source_seed_id": "S049",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB"
+          ],
+          "required_sequence": "DEV_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 14,
+          "source_seed_id": "S051",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 15,
+          "source_seed_id": "S052",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "VPN"
+          ],
+          "required_sequence": "VPN user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 16,
+          "source_seed_id": "S053",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB"
+          ],
+          "required_sequence": "DEV_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 17,
+          "source_seed_id": "S060",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 18,
+          "source_seed_id": "S061",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "VPN"
+          ],
+          "required_sequence": "VPN user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 19,
+          "source_seed_id": "S033",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB"
+          ],
+          "required_sequence": "DEV_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 20,
+          "source_seed_id": "S034",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 21,
+          "source_seed_id": "S035",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "VPN"
+          ],
+          "required_sequence": "VPN user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 22,
+          "source_seed_id": "S036",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB"
+          ],
+          "required_sequence": "DEV_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 23,
+          "source_seed_id": "S037",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "PROD_DB"
+          ],
+          "required_sequence": "PROD_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 24,
+          "source_seed_id": "S038",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "VPN"
+          ],
+          "required_sequence": "VPN user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 25,
+          "source_seed_id": "S039",
+          "generation_subtype": "single_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB"
+          ],
+          "required_sequence": "DEV_DB user context/status turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        }
+      ]
+    },
+    {
+      "job_id": "G15_multi_resource_howto_PLAN_001",
+      "generation_group_id": "G15_BATCH_001",
+      "generation_category": "multi_turn",
+      "source_seed_ids": [
+        "S033",
+        "S034",
+        "S035",
+        "S036",
+        "S037",
+        "S038",
+        "S039",
+        "S040",
+        "S041",
+        "S042",
+        "S046",
+        "S048",
+        "S049",
+        "S051",
+        "S052",
+        "S053",
+        "S060",
+        "S061"
+      ],
+      "target_count": 25,
+      "multi_turn_subtype": "multi_resource_howto",
+      "scenario_specs": [
+        {
+          "scenario_index": 1,
+          "source_seed_id": "S033",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB",
+            "PROD_DB"
+          ],
+          "required_sequence": "DEV_DB user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 2,
+          "source_seed_id": "S034",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "PROD_DB",
+            "VPN"
+          ],
+          "required_sequence": "PROD_DB user turn -> assistant -> VPN user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 3,
+          "source_seed_id": "S035",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "VPN",
+            "DEV_DB"
+          ],
+          "required_sequence": "VPN user turn -> assistant -> DEV_DB user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 4,
+          "source_seed_id": "S036",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB",
+            "PROD_DB"
+          ],
+          "required_sequence": "DEV_DB user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 5,
+          "source_seed_id": "S037",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "PROD_DB",
+            "VPN"
+          ],
+          "required_sequence": "PROD_DB user turn -> assistant -> VPN user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 6,
+          "source_seed_id": "S038",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "VPN",
+            "DEV_DB"
+          ],
+          "required_sequence": "VPN user turn -> assistant -> DEV_DB user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 7,
+          "source_seed_id": "S039",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB",
+            "PROD_DB"
+          ],
+          "required_sequence": "DEV_DB user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 8,
+          "source_seed_id": "S040",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "PROD_DB",
+            "VPN"
+          ],
+          "required_sequence": "PROD_DB user turn -> assistant -> VPN user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 9,
+          "source_seed_id": "S041",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "VPN",
+            "DEV_DB"
+          ],
+          "required_sequence": "VPN user turn -> assistant -> DEV_DB user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 10,
+          "source_seed_id": "S042",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB",
+            "PROD_DB"
+          ],
+          "required_sequence": "DEV_DB user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 11,
+          "source_seed_id": "S046",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "PROD_DB",
+            "VPN"
+          ],
+          "required_sequence": "PROD_DB user turn -> assistant -> VPN user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 12,
+          "source_seed_id": "S048",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "VPN",
+            "DEV_DB"
+          ],
+          "required_sequence": "VPN user turn -> assistant -> DEV_DB user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 13,
+          "source_seed_id": "S049",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB",
+            "PROD_DB"
+          ],
+          "required_sequence": "DEV_DB user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 14,
+          "source_seed_id": "S051",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "PROD_DB",
+            "VPN"
+          ],
+          "required_sequence": "PROD_DB user turn -> assistant -> VPN user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 15,
+          "source_seed_id": "S052",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "VPN",
+            "DEV_DB"
+          ],
+          "required_sequence": "VPN user turn -> assistant -> DEV_DB user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 16,
+          "source_seed_id": "S053",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB",
+            "PROD_DB"
+          ],
+          "required_sequence": "DEV_DB user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 17,
+          "source_seed_id": "S060",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "PROD_DB",
+            "VPN"
+          ],
+          "required_sequence": "PROD_DB user turn -> assistant -> VPN user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 18,
+          "source_seed_id": "S061",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "VPN",
+            "DEV_DB"
+          ],
+          "required_sequence": "VPN user turn -> assistant -> DEV_DB user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 19,
+          "source_seed_id": "S033",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB",
+            "PROD_DB"
+          ],
+          "required_sequence": "DEV_DB user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 20,
+          "source_seed_id": "S034",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "PROD_DB",
+            "VPN"
+          ],
+          "required_sequence": "PROD_DB user turn -> assistant -> VPN user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 21,
+          "source_seed_id": "S035",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "VPN",
+            "DEV_DB"
+          ],
+          "required_sequence": "VPN user turn -> assistant -> DEV_DB user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 22,
+          "source_seed_id": "S036",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB",
+            "PROD_DB"
+          ],
+          "required_sequence": "DEV_DB user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 23,
+          "source_seed_id": "S037",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "PROD_DB",
+            "VPN"
+          ],
+          "required_sequence": "PROD_DB user turn -> assistant -> VPN user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 24,
+          "source_seed_id": "S038",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "VPN",
+            "DEV_DB"
+          ],
+          "required_sequence": "VPN user turn -> assistant -> DEV_DB user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        },
+        {
+          "scenario_index": 25,
+          "source_seed_id": "S039",
+          "generation_subtype": "multi_resource_howto",
+          "target_contract": {
+            "decision": "NO_TOOL",
+            "tool_name": null,
+            "arguments": {}
+          },
+          "scenario_resources": [
+            "DEV_DB",
+            "PROD_DB"
+          ],
+          "required_sequence": "DEV_DB user turn -> assistant -> PROD_DB user turn -> assistant -> resource name 없는 지시어 기반 방법/절차/조건 user question"
+        }
+      ]
+    }
+  ]
+}

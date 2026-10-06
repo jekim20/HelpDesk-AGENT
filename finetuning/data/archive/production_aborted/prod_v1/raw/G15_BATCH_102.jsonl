@@ -1,0 +1,5 @@
+{"conversation":[{"role":"user","content":"DEV_DB에 접근할 수 있는 상태인지 확인하고 싶어요."},{"role":"assistant","content":"현재 DEV_DB에 접근할 수 있는지 확인해볼게요."},{"role":"user","content":"그럼 어떻게 접근할 수 있는지 절차를 알려주실 수 있나요?"}]}  
+{"conversation":[{"role":"user","content":"PROD_DB에 접근 가능한지 궁금해요."},{"role":"assistant","content":"PROD_DB 접근 상태를 확인해보겠습니다."},{"role":"user","content":"접근 방법이 어떤 건지 알 수 있을까요?"}]}  
+{"conversation":[{"role":"user","content":"VPN이 제대로 작동하는지 알고 싶어요."},{"role":"assistant","content":"VPN 연결 상태를 확인해볼게요."},{"role":"user","content":"그럼 VPN 사용하는 절차가 어떻게 되는지 설명해주실 수 있나요?"}]}  
+{"conversation":[{"role":"user","content":"DEV_DB에 접근할 수 있는지 체크해 주세요."},{"role":"assistant","content":"DEV_DB 접근 현황을 확인하겠습니다."},{"role":"user","content":"그럼 접근할 수 있는 조건은 뭔지 알고 싶어요."}]}  
+{"conversation":[{"role":"user","content":"PROD_DB 상태가 어떤지 궁금해요."},{"role":"assistant","content":"PROD_DB의 접근 상태를 확인해볼게요."},{"role":"user","content":"접근에 필요한 조건이 뭐가 있는지 알려주세요."}]}

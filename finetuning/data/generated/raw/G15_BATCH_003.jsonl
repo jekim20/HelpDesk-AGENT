@@ -1,0 +1,2 @@
+{"id": "1", "source_seed_id": "S043", "generation_group_id": "G15", "difficulty": ["MULTI_TURN"], "conversation": [{"role": "user", "content": "PROD_DB 권한 상태가 궁금해."}, {"role": "assistant", "content": "PROD_DB 권한 상태를 확인했습니다."}, {"role": "user", "content": "그 권한 신청해줘."}]}
+{"id": "2", "source_seed_id": "S043", "generation_group_id": "G15", "difficulty": ["MULTI_TURN"], "conversation": [{"role": "user", "content": "PROD_DB 권한이 어떻게 되어가?"}, {"role": "assistant", "content": "PROD_DB 권한 상태를 확인했습니다."}, {"role": "user", "content": "그거 신청해줘."}]}

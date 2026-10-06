@@ -1,0 +1,5 @@
+{"source_seed_id": "S001", "difficulty": ["DIRECT", "PARAPHRASE"], "conversation": [{"role": "user", "content": "내 DEV_DB 권한이 현재 활성 상태인지 확인해줘."}]}
+{"source_seed_id": "S002", "difficulty": ["DIRECT", "PARAPHRASE"], "conversation": [{"role": "user", "content": "지금 운영 DB에 접근 가능한지 봐줄래?"}]}
+{"source_seed_id": "S003", "difficulty": ["DIRECT", "PARAPHRASE"], "conversation": [{"role": "user", "content": "VPN 사용 권한을 내가 갖고 있는지 알려줘."}]}
+{"source_seed_id": "S004", "difficulty": ["DIRECT", "PARAPHRASE"], "conversation": [{"role": "user", "content": "작업 전에 개발 DB 권한 상태부터 체크 부탁해."}]}
+{"source_seed_id": "S005", "difficulty": ["DIRECT", "PARAPHRASE"], "conversation": [{"role": "user", "content": "현재 내 계정으로 PROD_DB를 쓸 수 있는 상태야?"}]}

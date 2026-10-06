@@ -37,12 +37,13 @@ public class ChatController {
         if (request == null || request.question() == null || request.question().isBlank()) {
             String sessionId = request == null ? null : request.sessionId();
             return ResponseEntity.badRequest().body(
-                    new ChatResult("질문을 입력해 주세요.", sessionId, List.of(), false, false));
+                    new ChatResult("질문을 입력해 주세요.", sessionId, List.of(), false, List.of(), false));
         }
         if (request.sessionId() == null || request.sessionId().isBlank()
                 || request.userId() == null || request.userId().isBlank()) {
             return ResponseEntity.badRequest().body(new ChatResult(
-                    "sessionId와 userId는 필수입니다.", request.sessionId(), List.of(), false, false));
+                    "sessionId와 userId는 필수입니다.", request.sessionId(),
+                    List.of(), false, List.of(), false));
         }
         return ResponseEntity.ok(helpDeskService.chat(
                 request.question(), request.sessionId(), request.userId(),

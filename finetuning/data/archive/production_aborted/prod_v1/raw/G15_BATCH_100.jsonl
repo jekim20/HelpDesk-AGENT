@@ -1,0 +1,5 @@
+{"conversation":[{"role":"user","content":"DEV_DB 접근 권한이 필요해요. 지금 상태가 어떤지 확인해 줄 수 있나요?"},{"role":"assistant","content":"DEV_DB의 현재 접근 상태를 확인해보겠습니다."},{"role":"user","content":"그럼 신청해줄 수 있어요?"}]}
+{"conversation":[{"role":"user","content":"PROD_DB에 접근할 수 있는지 확인해봐야겠어요. 현재 상태는 어떤가요?"},{"role":"assistant","content":"PROD_DB의 접근 상태를 확인해드릴게요."},{"role":"user","content":"신청 등록해줘요."}]}
+{"conversation":[{"role":"user","content":"VPN 사용 중인데, 접근 상태가 궁금해요."},{"role":"assistant","content":"VPN의 현재 접근 상태를 확인해드리겠습니다."},{"role":"user","content":"신청해줘."}]}
+{"conversation":[{"role":"user","content":"DEV_DB에 접근할 수 있는지 확인하고 싶어요."},{"role":"assistant","content":"DEV_DB의 접근 상태를 확인해볼게요."},{"role":"user","content":"그럼 신청해줄 수 있나요?"}]}
+{"conversation":[{"role":"user","content":"PROD_DB는 현재 어떤 상태인지 알고 싶어요."},{"role":"assistant","content":"PROD_DB의 접근 상태를 확인해드리겠습니다."},{"role":"user","content":"접근 요청 등록해줘."}]}

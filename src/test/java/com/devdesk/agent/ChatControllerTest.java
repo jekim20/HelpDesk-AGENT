@@ -21,6 +21,7 @@ class ChatControllerTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().answer()).contains("질문");
         assertThat(response.getBody().toolUsed()).isFalse();
+        assertThat(response.getBody().toolCalls()).isEmpty();
         verifyNoInteractions(service);
     }
 }

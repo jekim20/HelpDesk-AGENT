@@ -1,0 +1,1 @@
+{"conversation":[{"role":"user","content":"DEV_DB 접근 권한이 있는지 확인해줄 수 있어?"},{"role":"assistant","content":"DEV_DB에 대한 접근 권한은 현재 유효합니다."},{"role":"user","content":"그럼 DEV_DB 사용하려면 어떤 절차가 필요한지 알려줘."}]}

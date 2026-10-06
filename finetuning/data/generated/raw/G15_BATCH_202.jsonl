@@ -1,0 +1,2 @@
+{"conversation":[{"role":"user","content":"DEV_DB에 접근할 수 있는지 궁금해."},{"role":"assistant","content":"DEV_DB 접근에 관한 문의군요."},{"role":"user","content":"그것에 대한 조건이 어떻게 되는지 알고 싶어."}]}  
+{"conversation":[{"role":"user","content":"PROD_DB 접근 권한이 필요해."},{"role":"assistant","content":"PROD_DB 접근에 대한 문의군요."},{"role":"user","content":"그에 대한 절차가 어떤지 알고 싶어."}]}

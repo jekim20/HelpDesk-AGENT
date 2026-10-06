@@ -1,0 +1,2 @@
+{"id": "1", "source_seed_id": "S011", "generation_group_id": "G15", "generation_category": "multi_turn", "intent": "ACCESS_REQUEST", "difficulty": "medium", "conversation": "사용자: DEV_DB에 접근할 수 있는지 확인해줄 수 있어? 어제 요청했었거든.\n도우미: 현재 DEV_DB 접근 상태는 확인 중입니다. 잠시만 기다려주세요.\n사용자: 그러면 그 권한을 신청해줘."}
+{"id": "2", "source_seed_id": "S012", "generation_group_id": "G15", "generation_category": "multi_turn", "intent": "ACCESS_REQUEST", "difficulty": "medium", "conversation": "사용자: PROD_DB 접근이 가능한지 알고 싶어. 내 계정이 제대로 설정됐는지 확인해줘.\n도우미: PROD_DB의 접근 상태를 확인하고 있습니다. 조금만 기다려주세요.\n사용자: 그럼 접근 요청 등록해줘."}

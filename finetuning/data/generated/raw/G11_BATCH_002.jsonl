@@ -1,0 +1,5 @@
+{"id": "G11-001", "source_seed_id": "S057", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "로그인할 때 계정 오류가 발생해. 계정 지원 티켓 만들어줘."}]}
+{"id": "G11-002", "source_seed_id": "S057", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "계정에 문제가 생겨서 로그인할 수 없어. 지원 요청 접수해줘."}]}
+{"id": "G11-003", "source_seed_id": "S058", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "회사 계정에 접속이 안 돼. 지원 티켓 하나 올려줘."}]}
+{"id": "G11-004", "source_seed_id": "S058", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "계정 로그인할 때 오류가 나. 계정 지원 요청해."}]}
+{"id": "G11-005", "source_seed_id": "S058", "generation_group_id": "G11", "difficulty": ["PARAPHRASE"], "conversation": [{"role": "user", "content": "사내 계정에 로그인 실패가 있어. 지원 요청 부탁해."}]}

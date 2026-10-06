@@ -116,6 +116,14 @@ bash gradlew clean test
 GitHub Actions 기반 CI는 `main` 브랜치 push와 `main` 대상 pull request에서 Java 21 Gradle regression/unit test와 application build를 자동 검증한다.
 외부 LLM API나 secret이 필요 없는 Python evaluator unit test도 함께 실행한다.
 
+## RAG Retrieval Evaluation
+
+`src/test/resources/rag/golden-retrieval.json`에 실제 정책 문서 4개를 대상으로 한 Golden query 16건을 관리한다.
+평가는 검색 chunk를 source 파일명 기준으로 순서 보존 중복 제거한 뒤 Hit@5, 평균 Recall@5, 첫 relevant source 기준 MRR을 계산한다.
+현재 deterministic lexical baseline은 Golden Set 범위에서 Hit@5 100%, Recall@5 100%, MRR 1.0000이다.
+대부분 기대 source가 1개라 Hit@5와 Recall@5가 같아질 수 있으며, 이 수치는 일반적인 RAG 정확도가 아니다.
+외부 embedding API나 secret 없이 `./gradlew test`에서 실행되므로 기존 GitHub Actions CI에도 자동 포함된다.
+
 ## Agent Evaluation
 
 “Tool이 존재한다”와 “상황에 맞게 Tool을 사용한다”를 구분하기 위해 실제 `/api/chat`을 호출하는 시나리오 평가를 제공한다.

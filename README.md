@@ -118,11 +118,12 @@ GitHub Actions 기반 CI는 `main` 브랜치 push와 `main` 대상 pull request�
 
 ## RAG Retrieval Evaluation
 
-`src/test/resources/rag/golden-retrieval.json`에 실제 정책 문서 4개를 대상으로 한 Golden query 16건을 관리한다.
-평가는 검색 chunk를 source 파일명 기준으로 순서 보존 중복 제거한 뒤 Hit@1, Hit@3, 평균 Recall@3, 첫 relevant source 기준 MRR을 계산한다.
-현재 deterministic lexical baseline은 Golden Set 범위에서 Hit@1 100%, Hit@3 100%, Recall@3 100%, MRR 1.0000이다.
-대부분 기대 source가 1개라 Hit@3와 Recall@3가 같아질 수 있으며, 이 수치는 일반적인 RAG 정확도가 아니다.
-외부 embedding API나 secret 없이 `./gradlew test`에서 실행되므로 기존 GitHub Actions CI에도 자동 포함된다.
+- Golden Query 기반 deterministic retrieval regression은 외부 API나 secret 없이 CI에서 실행된다.
+- Live OpenAI embedding 평가는 명시적으로 opt-in할 때만 실행되며 dev set과 unseen holdout을 분리한다.
+- Hit@K, Recall@K, MRR, negative false-positive와 raw similarity score를 함께 진단한다.
+- Dev set의 `0.30` 후보가 unseen holdout에서 충분히 일반화되지 않아 production threshold 변경을 보류했다.
+
+상세 결과와 한계는 [RAG Retrieval Quality Evaluation](docs/rag-retrieval-quality-evaluation.md)에 정리했다.
 
 ## Agent Evaluation
 

@@ -68,12 +68,13 @@ class RagRetrievalEvaluationTest {
                 .toList();
         EvaluationResult evaluation = evaluate(queryResults);
 
-        System.out.println(evaluation.report(TOP_K));
+        System.out.println(evaluation.report());
 
         assertThat(goldenCases).hasSize(16);
         assertThat(evaluation.totalQueries()).isEqualTo(goldenCases.size());
-        assertThat(evaluation.hitAtK()).isGreaterThanOrEqualTo(0.90);
-        assertThat(evaluation.recallAtK()).isGreaterThanOrEqualTo(0.90);
+        assertThat(evaluation.hitAtOne()).isGreaterThanOrEqualTo(0.90);
+        assertThat(evaluation.hitAtThree()).isGreaterThanOrEqualTo(0.90);
+        assertThat(evaluation.recallAtThree()).isGreaterThanOrEqualTo(0.90);
         assertThat(evaluation.mrr()).isGreaterThanOrEqualTo(0.85);
     }
 
@@ -91,8 +92,9 @@ class RagRetrievalEvaluationTest {
 
         assertThat(results.getFirst().retrievedSources()).containsExactly("x.md", "a.md");
         assertThat(evaluation.totalQueries()).isEqualTo(2);
-        assertThat(evaluation.hitAtK()).isEqualTo(1.0);
-        assertThat(evaluation.recallAtK()).isEqualTo(0.75);
+        assertThat(evaluation.hitAtOne()).isEqualTo(0.5);
+        assertThat(evaluation.hitAtThree()).isEqualTo(1.0);
+        assertThat(evaluation.recallAtThree()).isEqualTo(0.75);
         assertThat(evaluation.mrr()).isEqualTo(0.75);
         assertThat(evaluation.failures()).singleElement()
                 .satisfies(failure -> assertThat(failure.id()).isEqualTo("RAG-B"));
@@ -146,14 +148,16 @@ class RagRetrievalEvaluationTest {
     }
 
     private static EvaluationResult evaluate(List<QueryResult> results) {
-        double hits = 0.0;
-        double recall = 0.0;
+        double hitsAtOne = 0.0;
+        double hitsAtThree = 0.0;
+        double recallAtThree = 0.0;
         double reciprocalRanks = 0.0;
         List<Failure> failures = new ArrayList<>();
 
         for (QueryResult result : results) {
             Set<String> expected = new HashSet<>(result.goldenCase().expectedSources());
-            long relevantCount = result.retrievedSources().stream().filter(expected::contains).count();
+            List<String> topThree = result.retrievedSources().stream().limit(3).toList();
+            long relevantAtThree = topThree.stream().filter(expected::contains).count();
             int firstRelevantRank = 0;
             for (int index = 0; index < result.retrievedSources().size(); index++) {
                 if (expected.contains(result.retrievedSources().get(index))) {
@@ -163,11 +167,12 @@ class RagRetrievalEvaluationTest {
             }
 
             if (firstRelevantRank > 0) {
-                hits += 1.0;
                 reciprocalRanks += 1.0 / firstRelevantRank;
             }
-            recall += (double) relevantCount / expected.size();
-            if (relevantCount < expected.size()) {
+            if (firstRelevantRank == 1) hitsAtOne += 1.0;
+            if (firstRelevantRank > 0 && firstRelevantRank <= 3) hitsAtThree += 1.0;
+            recallAtThree += (double) relevantAtThree / expected.size();
+            if (relevantAtThree < expected.size()) {
                 failures.add(new Failure(
                         result.goldenCase().id(),
                         result.goldenCase().query(),
@@ -179,8 +184,9 @@ class RagRetrievalEvaluationTest {
         int total = results.size();
         return new EvaluationResult(
                 total,
-                hits / total,
-                recall / total,
+                hitsAtOne / total,
+                hitsAtThree / total,
+                recallAtThree / total,
                 reciprocalRanks / total,
                 List.copyOf(failures));
     }
@@ -201,18 +207,20 @@ class RagRetrievalEvaluationTest {
 
     private record EvaluationResult(
             int totalQueries,
-            double hitAtK,
-            double recallAtK,
+            double hitAtOne,
+            double hitAtThree,
+            double recallAtThree,
             double mrr,
             List<Failure> failures) {
 
-        String report(int topK) {
+        String report() {
             StringBuilder report = new StringBuilder()
                     .append("RAG retrieval evaluation\n")
                     .append("------------------------\n")
                     .append("Queries: ").append(totalQueries).append('\n')
-                    .append("Hit@").append(topK).append(": ").append(format(hitAtK)).append('\n')
-                    .append("Recall@").append(topK).append(": ").append(format(recallAtK)).append('\n')
+                    .append("Hit@1: ").append(format(hitAtOne)).append('\n')
+                    .append("Hit@3: ").append(format(hitAtThree)).append('\n')
+                    .append("Recall@3: ").append(format(recallAtThree)).append('\n')
                     .append("MRR: ").append(format(mrr)).append('\n')
                     .append("Failures: ").append(failures.size()).append('\n');
             for (Failure failure : failures) {

@@ -111,6 +111,11 @@ bash gradlew clean test
 
 테스트는 Access 사용자 격리, 지원 리소스 검증, PENDING gate, Repository 장애 안전 응답, `userId:sessionId` Memory 격리, Safety 선차단, HTTP 400과 fallback 전환을 검증한다.
 
+## CI
+
+GitHub Actions 기반 CI는 `main` 브랜치 push와 `main` 대상 pull request에서 Java 21 Gradle regression/unit test와 application build를 자동 검증한다.
+외부 LLM API나 secret이 필요 없는 Python evaluator unit test도 함께 실행한다.
+
 ## Agent Evaluation
 
 “Tool이 존재한다”와 “상황에 맞게 Tool을 사용한다”를 구분하기 위해 실제 `/api/chat`을 호출하는 시나리오 평가를 제공한다.

@@ -1,0 +1,62 @@
+name: helpdesk-agent-local
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: helpdesk
+      POSTGRES_USER: helpdesk
+      POSTGRES_PASSWORD: ${HELPDESK_DB_PASSWORD:?Set HELPDESK_DB_PASSWORD in .env.docker.local}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - helpdesk
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/helpdesk
+      DB_USERNAME: helpdesk
+      DB_PASSWORD: ${HELPDESK_DB_PASSWORD:?Set HELPDESK_DB_PASSWORD in .env.docker.local}
+      APP_USER1_PASSWORD: ${APP_USER1_PASSWORD:?Set APP_USER1_PASSWORD in .env.docker.local}
+      APP_USER2_PASSWORD: ${APP_USER2_PASSWORD:?Set APP_USER2_PASSWORD in .env.docker.local}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:?Set APP_ADMIN_PASSWORD in .env.docker.local}
+      OPENAI_API_KEY: ${HELPDESK_OPENAI_API_KEY:-not-set}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent --show-error --max-time 2 http://127.0.0.1:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 60s
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    init: true
+    restart: unless-stopped
+    networks:
+      - helpdesk
+
+volumes:
+  postgres_data:
+
+networks:
+  helpdesk:
+    driver: bridge

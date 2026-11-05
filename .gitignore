@@ -8,6 +8,7 @@ bin/
 __pycache__/
 *.py[cod]
 .env
+.env.docker.local
 .idea/
 *.iml
 # VS Code — 팀 공통 설정(settings·extensions·launch·tasks)은 커밋한다

@@ -1,5 +1,7 @@
 # RAG Retrieval Quality Evaluation
 
+> 아래 live embedding 수치는 저장된 과거 실험 결과다. 2026-10-16 점검에서는 외부 API를 호출하지 않아 현재 코드의 live 검색 품질을 다시 측정하지 않았다. 현재 재현된 범위는 결정적 검색 회귀 테스트다.
+
 ## 1. Purpose
 
 이 평가는 HelpDesk Agent가 업무 정책 문서를 안정적으로 검색하는지 확인하기 위해 수행했다. 실제 OpenAI API 없이 실행되는 deterministic CI regression과 OpenAI embedding을 사용하는 opt-in live evaluation을 분리하고, dev set에서 관찰한 threshold 후보가 unseen holdout에서도 일반화되는지 검증했다. 마지막으로 query별 raw similarity score를 비교해 단순 threshold 조정의 한계를 분석했다.

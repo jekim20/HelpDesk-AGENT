@@ -6,6 +6,10 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import java.util.List;
 
 class ChatControllerTest {
 
@@ -15,7 +19,9 @@ class ChatControllerTest {
         ChatController controller = new ChatController(
                 service, mock(IngestService.class), mock(TicketRepository.class));
 
-        var response = controller.chat(new ChatController.ChatRequest("", "session", "user1", false));
+        var response = controller.chat(new ChatController.ChatRequest("", "session", "user1", false),
+                UsernamePasswordAuthenticationToken.authenticated(
+                        "user1", null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isNotNull();

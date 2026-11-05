@@ -2,11 +2,16 @@ import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "
 
 import {
   ChatResponse,
+  CurrentUser,
   DevDeskApiError,
   Ticket,
   ToolCall,
   initializeKnowledge,
+  loadCurrentUser,
+  loadHistory,
   loadTickets,
+  signIn,
+  signOut,
   sendChat,
 } from "./api/devdesk";
 
@@ -18,6 +23,7 @@ interface ConversationEntry {
   question: string;
   userId: string;
   sessionId: string;
+  historical?: boolean;
   response?: ChatResponse;
   error?: string;
 }
@@ -58,9 +64,38 @@ const MULTI_TURN_STEPS = [
 
 function formatApiError(error: unknown): string {
   if (error instanceof DevDeskApiError) {
-    return error.status ? `${error.message} · HTTP ${error.status}` : error.message;
+    return error.message;
   }
   return "Backend request failed";
+}
+
+function isAdmin(user: CurrentUser | null): boolean {
+  return user?.roles.includes("ADMIN") ?? false;
+}
+
+function restoreEntries(messages: string[], user: CurrentUser, sessionId: string): ConversationEntry[] {
+  const entries: ConversationEntry[] = [];
+  for (let index = 0; index < messages.length; index += 2) {
+    const answer = messages[index + 1];
+    entries.push({
+      id: -(index + 1),
+      question: messages[index],
+      userId: user.username,
+      sessionId,
+      historical: true,
+      response: answer
+        ? {
+            answer,
+            sessionId,
+            sources: [],
+            toolUsed: false,
+            toolCalls: [],
+            fallbackUsed: false,
+          }
+        : undefined,
+    });
+  }
+  return entries;
 }
 
 function hasPendingState(response: ChatResponse): boolean {
@@ -160,7 +195,12 @@ function SourceList({ sources }: { sources: string[] }) {
 }
 
 function App() {
-  const [userId, setUserId] = useState("user1");
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [loginUsername, setLoginUsername] = useState("user1");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [sessionId, setSessionId] = useState("demo");
   const [question, setQuestion] = useState("");
   const [simulatePrimaryFailure, setSimulatePrimaryFailure] = useState(false);
@@ -169,26 +209,146 @@ function App() {
   const [backendStatus, setBackendStatus] = useState<BackendStatus>("checking");
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [isLoadingTickets, setIsLoadingTickets] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState("");
   const [knowledgeStatus, setKnowledgeStatus] = useState<KnowledgeStatus>("idle");
   const [knowledgeError, setKnowledgeError] = useState("");
+  const [ticketError, setTicketError] = useState("");
   const nextId = useRef(1);
   const conversationEndRef = useRef<HTMLDivElement>(null);
 
   const latestResponse = useMemo(
-    () => [...entries].reverse().find((entry) => entry.response)?.response,
+    () => [...entries].reverse().find((entry) => entry.response && !entry.historical)?.response,
     [entries],
   );
 
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const user = await loadCurrentUser();
+        if (!active) return;
+        setCurrentUser(user);
+        setBackendStatus("connected");
+        try {
+          const history = await loadHistory(sessionId);
+          if (active) setEntries(restoreEntries(history, user, sessionId));
+        } catch (error) {
+          if (!active) return;
+          if (error instanceof DevDeskApiError && error.status === 401) {
+            setCurrentUser(null);
+            setLoginError(error.message);
+          } else {
+            setHistoryError(formatApiError(error));
+          }
+        }
+      } catch (error) {
+        if (!active) return;
+        if (error instanceof DevDeskApiError && error.status !== 401) {
+          setLoginError(formatApiError(error));
+        }
+        setCurrentUser(null);
+      } finally {
+        if (active) setAuthLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (isAdmin(currentUser)) {
+      void refreshTickets();
+    } else {
+      setTickets([]);
+      setTicketError("");
+    }
+  }, [currentUser]);
+
   async function refreshTickets() {
+    if (!isAdmin(currentUser)) return;
     setIsLoadingTickets(true);
+    setTicketError("");
     try {
       const result = await loadTickets();
       setTickets(result);
       setBackendStatus("connected");
-    } catch {
-      setBackendStatus("unavailable");
+    } catch (error) {
+      if (error instanceof DevDeskApiError && error.status === 401) {
+        setCurrentUser(null);
+        setLoginError(error.message);
+      } else {
+        setTicketError(formatApiError(error));
+      }
     } finally {
       setIsLoadingTickets(false);
+    }
+  }
+
+  async function handleLogin(event: FormEvent) {
+    event.preventDefault();
+    if (!loginUsername.trim() || !loginPassword || isLoggingIn) return;
+    setIsLoggingIn(true);
+    setLoginError("");
+    try {
+      const user = await signIn(loginUsername.trim(), loginPassword);
+      setCurrentUser(user);
+      setLoginPassword("");
+      setBackendStatus("connected");
+      try {
+        const history = await loadHistory(sessionId);
+        setEntries(restoreEntries(history, user, sessionId));
+      } catch (error) {
+        if (error instanceof DevDeskApiError && error.status === 401) {
+          setCurrentUser(null);
+          setLoginError(error.message);
+        } else {
+          setHistoryError(formatApiError(error));
+        }
+      }
+    } catch (error) {
+      setLoginPassword("");
+      if (error instanceof DevDeskApiError && error.status === 401) {
+        setLoginError("로그인 정보가 올바르지 않습니다.");
+      } else {
+        setLoginError(formatApiError(error));
+      }
+      if (error instanceof DevDeskApiError && error.status === 401 && currentUser) {
+        setCurrentUser(null);
+      }
+    } finally {
+      setIsLoggingIn(false);
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      await signOut();
+    } catch (error) {
+      setLoginError(formatApiError(error));
+    } finally {
+      setCurrentUser(null);
+      setEntries([]);
+      setTickets([]);
+      setSimulatePrimaryFailure(false);
+    }
+  }
+
+  async function handleLoadHistory() {
+    if (!currentUser || !sessionId.trim()) return;
+    setIsLoadingHistory(true);
+    setHistoryError("");
+    try {
+      const history = await loadHistory(sessionId.trim());
+      setEntries(restoreEntries(history, currentUser, sessionId.trim()));
+    } catch (error) {
+      if (error instanceof DevDeskApiError && error.status === 401) {
+        setCurrentUser(null);
+        setLoginError(error.message);
+      } else {
+        setHistoryError(formatApiError(error));
+      }
+    } finally {
+      setIsLoadingHistory(false);
     }
   }
 
@@ -202,21 +362,17 @@ function App() {
       setKnowledgeStatus("ready");
       setBackendStatus("connected");
     } catch (error) {
+      if (error instanceof DevDeskApiError && error.status === 401) {
+        setCurrentUser(null);
+        setLoginError(error.message);
+      }
       setKnowledgeStatus("error");
       setKnowledgeError(
-        error instanceof DevDeskApiError && error.status
-          ? `Knowledge initialization failed · HTTP ${error.status}`
-          : "Knowledge initialization failed",
+        formatApiError(error),
       );
-      setBackendStatus(
-        error instanceof DevDeskApiError && error.status ? "connected" : "unavailable",
-      );
+      setBackendStatus("connected");
     }
   }
-
-  useEffect(() => {
-    void refreshTickets();
-  }, []);
 
   useEffect(() => {
     conversationEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -225,16 +381,15 @@ function App() {
   async function handleSubmit(event?: FormEvent) {
     event?.preventDefault();
     const trimmedQuestion = question.trim();
-    const trimmedUserId = userId.trim();
     const trimmedSessionId = sessionId.trim();
 
-    if (!trimmedQuestion || !trimmedUserId || !trimmedSessionId || isSending) return;
+    if (!currentUser || !trimmedQuestion || !trimmedSessionId || isSending) return;
 
     const id = nextId.current++;
     const entry: ConversationEntry = {
       id,
       question: trimmedQuestion,
-      userId: trimmedUserId,
+      userId: currentUser.username,
       sessionId: trimmedSessionId,
     };
 
@@ -245,22 +400,25 @@ function App() {
     try {
       const response = await sendChat({
         question: trimmedQuestion,
-        userId: trimmedUserId,
         sessionId: trimmedSessionId,
-        simulatePrimaryFailure,
+        simulatePrimaryFailure: isAdmin(currentUser) && simulatePrimaryFailure,
       });
       setEntries((current) =>
         current.map((item) => (item.id === id ? { ...item, response } : item)),
       );
       setBackendStatus("connected");
-      if (hasPendingState(response)) void refreshTickets();
+      if (hasPendingState(response) && isAdmin(currentUser)) void refreshTickets();
     } catch (error) {
+      if (error instanceof DevDeskApiError && error.status === 401) {
+        setCurrentUser(null);
+        setLoginError(error.message);
+      }
       setEntries((current) =>
         current.map((item) =>
           item.id === id ? { ...item, error: formatApiError(error) } : item,
         ),
       );
-      setBackendStatus("unavailable");
+      setBackendStatus(error instanceof DevDeskApiError && error.status ? "connected" : "unavailable");
     } finally {
       setIsSending(false);
     }
@@ -271,6 +429,46 @@ function App() {
       event.preventDefault();
       void handleSubmit();
     }
+  }
+
+  if (authLoading) {
+    return <main className="auth-screen"><p>Restoring your HelpDesk session…</p></main>;
+  }
+
+  if (!currentUser) {
+    return (
+      <main className="auth-screen">
+        <form className="auth-card" onSubmit={handleLogin}>
+          <div className="brand-mark" aria-hidden="true">D</div>
+          <span className="eyebrow">DEV DESK AI · SECURE SESSION</span>
+          <h1>Sign in to HelpDesk</h1>
+          <p>Your identity and role come from the authenticated server session.</p>
+          <label>
+            <span>Username</span>
+            <input
+              autoComplete="username"
+              onChange={(event) => setLoginUsername(event.target.value)}
+              required
+              value={loginUsername}
+            />
+          </label>
+          <label>
+            <span>Password</span>
+            <input
+              autoComplete="current-password"
+              onChange={(event) => setLoginPassword(event.target.value)}
+              required
+              type="password"
+              value={loginPassword}
+            />
+          </label>
+          {loginError && <p className="auth-error" role="alert">{loginError}</p>}
+          <button className="auth-submit" disabled={isLoggingIn} type="submit">
+            {isLoggingIn ? "Signing in…" : "Sign in"}
+          </button>
+        </form>
+      </main>
+    );
   }
 
   return (
@@ -288,6 +486,12 @@ function App() {
         </div>
         <div className="topbar__meta">
           <span className="tech-line">Spring AI · RAG · Tool Calling</span>
+          <div className="topbar__account">
+            <span>{currentUser.username} · {currentUser.roles.join(", ")}</span>
+            <button className="logout-button" onClick={() => void handleLogout()} type="button">
+              Sign out
+            </button>
+          </div>
           <StatusDot status={backendStatus} />
         </div>
       </header>
@@ -332,7 +536,7 @@ function App() {
                 <div className="message message--user">
                   <div className="message__meta">
                     <strong>You</strong>
-                    <span>{entry.userId} · {entry.sessionId}</span>
+                <span>{entry.userId} · {entry.sessionId}</span>
                   </div>
                   <p>{entry.question}</p>
                 </div>
@@ -342,17 +546,20 @@ function App() {
                     <div className="message__meta">
                       <strong>DevDesk</strong>
                       <div className="message-badges">
-                        {entry.response.fallbackUsed && (
+                        {entry.historical && (
+                          <span className="badge">Saved text · trace not retained</span>
+                        )}
+                        {!entry.historical && entry.response.fallbackUsed && (
                           <span className="badge badge--warning">Fallback used</span>
                         )}
-                        {hasPendingState(entry.response) && (
+                        {!entry.historical && hasPendingState(entry.response) && (
                           <span className="badge badge--pending">PENDING</span>
                         )}
                       </div>
                     </div>
                     <p>{entry.response.answer}</p>
-                    <ToolTrace calls={entry.response.toolCalls} />
-                    <SourceList sources={entry.response.sources} />
+                    {!entry.historical && <ToolTrace calls={entry.response.toolCalls} />}
+                    {!entry.historical && <SourceList sources={entry.response.sources} />}
                   </div>
                 )}
 
@@ -392,7 +599,7 @@ function App() {
               <span>Enter to send · Shift+Enter for a new line</span>
               <button
                 className="send-button"
-                disabled={isSending || !question.trim() || !userId.trim() || !sessionId.trim()}
+                disabled={isSending || !question.trim() || !sessionId.trim()}
                 type="submit"
               >
                 {isSending ? "Sending…" : "Send"}
@@ -411,33 +618,45 @@ function App() {
                 <h2>User &amp; Session</h2>
               </div>
             </div>
-            <div className="field-grid">
-              <label>
-                <span>User ID</span>
-                <input value={userId} onChange={(event) => setUserId(event.target.value)} />
-              </label>
+            <div className="identity-row">
+              <span>Authenticated as</span>
+              <strong>{currentUser.username}</strong>
+              <span className="role-chip">{currentUser.roles.join(", ")}</span>
+            </div>
+            <div className="field-grid field-grid--session">
               <label>
                 <span>Session ID</span>
                 <input value={sessionId} onChange={(event) => setSessionId(event.target.value)} />
               </label>
             </div>
+            <button
+              className="history-button"
+              disabled={isLoadingHistory || !sessionId.trim()}
+              onClick={() => void handleLoadHistory()}
+              type="button"
+            >
+              {isLoadingHistory ? "Loading history…" : "Load this session's history"}
+            </button>
+            {historyError && <p className="knowledge-error" role="alert">{historyError}</p>}
             <p className="helper-text">
-              Memory is isolated by <code>userId:sessionId</code>. Changes apply to the next request.
+              Memory is isolated by the authenticated user and <code>sessionId</code>.
             </p>
-            <label className="toggle-row">
-              <input
-                checked={simulatePrimaryFailure}
-                onChange={(event) => setSimulatePrimaryFailure(event.target.checked)}
-                type="checkbox"
-              />
-              <span>
-                <strong>Fallback demo</strong>
-                Send model-path requests with primary-failure simulation while enabled
-              </span>
-            </label>
+            {isAdmin(currentUser) && (
+              <label className="toggle-row">
+                <input
+                  checked={simulatePrimaryFailure}
+                  onChange={(event) => setSimulatePrimaryFailure(event.target.checked)}
+                  type="checkbox"
+                />
+                <span>
+                  <strong>Fallback demo</strong>
+                  Send model-path requests with primary-failure simulation while enabled
+                </span>
+              </label>
+            )}
           </section>
 
-          <section className="panel-block knowledge-block">
+          {isAdmin(currentUser) && <section className="panel-block knowledge-block">
             <div className="panel-title panel-title--compact panel-title--split">
               <div>
                 <span className="panel-icon" aria-hidden="true">◇</span>
@@ -464,7 +683,7 @@ function App() {
                 : "Initialize policy knowledge"}
             </button>
             {knowledgeError && <p className="knowledge-error" role="alert">{knowledgeError}</p>}
-          </section>
+          </section>}
 
           <section className="panel-block">
             <div className="panel-title panel-title--compact">
@@ -514,7 +733,7 @@ function App() {
             )}
           </section>
 
-          <section className="panel-block tickets-block">
+          {isAdmin(currentUser) && <section className="panel-block tickets-block">
             <div className="panel-title panel-title--compact panel-title--split">
               <div>
                 <span className="panel-icon" aria-hidden="true">▤</span>
@@ -536,7 +755,8 @@ function App() {
                 ))}
               </div>
             )}
-          </section>
+            {ticketError && <p className="knowledge-error" role="alert">{ticketError}</p>}
+          </section>}
 
           <section className="panel-block snapshot-block">
             <span className="eyebrow">OFFLINE EVALUATION SNAPSHOT</span>

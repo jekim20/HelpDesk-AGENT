@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,31 @@ public class HelpDeskService {
 
     private static final Logger log = LoggerFactory.getLogger(HelpDeskService.class);
     private static final int MAX_INPUT_LENGTH = 4000;
+    private static final Pattern EXPLICIT_ACCESS_REQUEST = Pattern.compile(
+            "(?iu)(?:권한|접근)"
+                    + "[^.!?。！？\\n]{0,24}?"
+                    + "(?:신청|요청)(?:을|를)?\\s*"
+                    + "(?:해\\s*(?:줘|주세요|주실래요|주시겠어요)|해줘|해주세요"
+                    + "|어\\s*(?:줘|주세요)|어줘|어주세요|부탁해(?:요)?|부탁드립니다|해주십시오)");
+    private static final Pattern ACCESS_DOMAIN = Pattern.compile("(?iu)(?:권한|접근)");
+    private static final Pattern EXPLICIT_ACCESS_ACTION = Pattern.compile(
+            "(?iu)(?:신청|요청)(?:을|를)?\\s*"
+                    + "(?:해\\s*(?:줘|주세요|주실래요|주시겠어요)|해줘|해주세요"
+                    + "|어\\s*(?:줘|주세요)|어줘|어주세요|부탁해(?:요)?|부탁드립니다|해주십시오)");
+    private static final Pattern EXPLICIT_TICKET_OPERATION = Pattern.compile(
+            "(?iu)(?:티켓|장애|지원\\s*(?:요청|티켓))"
+                    + "[^.!?。！？\\n]{0,24}?"
+                    + "(?:신청|요청|접수|생성|만들|등록)(?:을|를)?\\s*"
+                    + "(?:해\\s*(?:줘|주세요|주실래요|주시겠어요)|해줘|해주세요"
+                    + "|어\\s*(?:줘|주세요)|어줘|어주세요|부탁해(?:요)?|부탁드립니다|해주십시오)");
+    private static final Pattern NON_EXECUTION_CONTEXT = Pattern.compile(
+            "(?iu)(?:하지\\s*(?:마|말|않)|(?:신청|접수|생성|등록|만들)지\\s*마"
+                    + "|말고|절차|방법|어떻게|무엇|뭐|뜻|의미|설명|알려|가이드|안내문"
+                    + "|문서|정책|신청서|요청서|답변|메일|문구|예시|템플릿|양식|보고서|요약|초안|공지"
+                    + "|가능"
+                    + "|할\\s*수|해야|만약|가정|예를\\s*들|인용|번역|문장|표현|[?？])");
+    private static final Pattern QUOTED_TEXT = Pattern.compile(
+            "“[^”]*”|‘[^’]*’|「[^」]*」|『[^』]*』|\"[^\"]*\"|'[^']*'");
     private final ChatClient primaryClient;
     private final ChatClient fallbackClient;
     private final ChatMemory memory;
@@ -133,7 +159,8 @@ public class HelpDeskService {
         return client.prompt()
                 .user(question)
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
-                .tools(accessTools, ticketTools)
+                // The model path is read-only. Ticket writes are routed only by the server-side intent gate.
+                .tools(accessTools)
                 .toolContext(Map.of("userId", userId))
                 .call()
                 .content();
@@ -173,9 +200,14 @@ public class HelpDeskService {
     }
 
     private boolean isTicketRequest(String question) {
-        return question.contains("신청해줘") || question.contains("신청해 줘")
-                || question.contains("접수해줘") || question.contains("접수해 줘")
-                || question.contains("티켓 생성해줘") || question.contains("티켓 만들어줘");
+        if (question == null || question.isBlank() || NON_EXECUTION_CONTEXT.matcher(question).find()) {
+            return false;
+        }
+        String unquoted = QUOTED_TEXT.matcher(question).replaceAll(" ");
+        return EXPLICIT_ACCESS_REQUEST.matcher(unquoted).find()
+                || EXPLICIT_TICKET_OPERATION.matcher(unquoted).find()
+                || (ACCESS_DOMAIN.matcher(unquoted).find()
+                && EXPLICIT_ACCESS_ACTION.matcher(unquoted).find());
     }
 
     private TicketType ticketType(String question) {

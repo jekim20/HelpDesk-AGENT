@@ -43,7 +43,10 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health
+  endpoint:
+    health:
+      show-details: never
   metrics:
     tags:
       application: devdesk-ai
@@ -58,6 +61,11 @@ logging:
     org.springframework.ai.chat.client.advisor: INFO
 
 app:
+  security:
+    # Credentials come from the environment. Empty values disable that local account.
+    user1-password: ${APP_USER1_PASSWORD:}
+    user2-password: ${APP_USER2_PASSWORD:}
+    admin-password: ${APP_ADMIN_PASSWORD:}
   ai:
     # 운영에서는 primary와 다른 모델명으로 설정할 수 있다.
     fallback-model: ${FALLBACK_MODEL:gpt-4o-mini}

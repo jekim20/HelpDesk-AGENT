@@ -28,6 +28,8 @@ import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 class RagRetrievalTest {
 
@@ -92,7 +94,9 @@ class RagRetrievalTest {
                 service, mock(IngestService.class), ticketRepository);
 
         var apiResponse = controller.chat(new ChatController.ChatRequest(
-                question, "rag-regression", "user1", false));
+                question, "rag-regression", "user1", false),
+                UsernamePasswordAuthenticationToken.authenticated(
+                        "user1", null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
 
         assertThat(apiResponse.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(apiResponse.getBody()).isNotNull();

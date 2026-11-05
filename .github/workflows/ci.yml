@@ -34,7 +34,7 @@ jobs:
         run: ./gradlew test
 
       - name: Run Python evaluator tests
-        run: python -m unittest scripts/test_evaluate_agent.py scripts/test_evaluate_prompt_injection.py
+        run: python -m unittest scripts/test_evaluate_agent.py scripts/test_evaluate_agent_auth.py scripts/test_evaluate_prompt_injection.py
 
       - name: Verify application build
         run: ./gradlew build

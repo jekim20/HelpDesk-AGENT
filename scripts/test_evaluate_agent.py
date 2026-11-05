@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import unittest
 from pathlib import Path
 
@@ -167,6 +168,86 @@ class ToolEvaluationTest(unittest.TestCase):
                 "latencyMs": 1,
             }],
         }
+
+
+class AnswerKnowledgeBoundaryTest(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        scenarios_path = SCRIPT_PATH.parent.parent / "evaluation" / "agent_scenarios.json"
+        cls.scenarios = json.loads(scenarios_path.read_text(encoding="utf-8"))
+        cls.ag10 = next(scenario for scenario in cls.scenarios if scenario["id"] == "AG-10")
+        cls.expected = cls.ag10["turns"][0]["expected"]
+
+    def evaluate(self, answer):
+        return EVALUATOR.evaluate_turn(
+            self.expected, 200,
+            {"answer": answer, "toolUsed": False, "toolCalls": [], "sources": []},
+        )
+
+    def test_saved_live_answer_passes_semantic_evidence_boundary(self):
+        old_live_answer = (
+            "죄송하지만, 제공된 문서에는 GPU 서버 야간 사용 정책에 대한 정보가 "
+            "포함되어 있지 않습니다. 해당 정책에 대한 질문은 답변할 수 없습니다."
+        )
+
+        self.assertEqual([], self.evaluate(old_live_answer))
+
+    def test_equivalent_source_boundaries_with_different_wording_pass(self):
+        examples = [
+            "제공된 자료만으로는 GPU 서버 야간 이용 여부를 확인할 수 없습니다.",
+            "GPU 서버 야간 사용 규정은 현재 문서에서 찾을 수 없어 답변 근거가 없습니다.",
+            "문서에는 GPU 서버의 야간 정책이 안내되어 있지 않아 확인된 기준을 말씀드릴 수 없습니다.",
+        ]
+
+        for answer in examples:
+            with self.subTest(answer=answer):
+                self.assertEqual([], self.evaluate(answer))
+
+    def test_holdout_wording_passes_without_copying_the_saved_response(self):
+        answer = "GPU 서버의 야간 접속 규정은 제공된 근거에서 확인되지 않습니다."
+
+        self.assertEqual([], self.evaluate(answer))
+
+    def test_confident_unsupported_policy_claim_fails(self):
+        answer = "GPU 서버는 야간에 오후 10시부터 자유롭게 이용할 수 있습니다."
+
+        self.assertTrue(any("evidence" in failure or "unsupported" in failure
+                            for failure in self.evaluate(answer)))
+
+    def test_evidence_disclaimer_does_not_excuse_a_hallucinated_claim(self):
+        answer = (
+            "제공된 문서에는 GPU 서버 야간 정책이 없습니다. "
+            "하지만 야간 사용은 오후 10시부터 허용됩니다."
+        )
+
+        self.assertTrue(any("unsupported policy claim" in failure for failure in self.evaluate(answer)))
+
+    def test_unrelated_answer_with_absence_words_fails(self):
+        answer = "GPU 서버 야간 이용은 안정적입니다. VPN 문서에는 관련 정보가 없습니다."
+
+        self.assertTrue(any("no sentence links" in failure for failure in self.evaluate(answer)))
+
+    def test_keyword_presence_without_evidence_boundary_fails(self):
+        for answer in (
+            "GPU 서버 야간 사용 정책을 확인했습니다.",
+            "GPU 서버 야간 정책은 없습니다.",
+        ):
+            with self.subTest(answer=answer):
+                self.assertTrue(any("no sentence links" in failure for failure in self.evaluate(answer)))
+
+    def test_only_ag10_has_the_new_rubric_and_scenario_count_is_unchanged(self):
+        turns = [turn for scenario in self.scenarios for turn in scenario["turns"]]
+
+        self.assertEqual(15, len(self.scenarios))
+        self.assertEqual(17, len(turns))
+        self.assertIn("answerKnowledgeBoundary", self.expected)
+        self.assertNotIn("answerContainsAny", self.expected)
+        self.assertTrue(all(
+            "answerKnowledgeBoundary" not in turn["expected"]
+            for scenario in self.scenarios if scenario["id"] != "AG-10"
+            for turn in scenario["turns"]
+        ))
 
 
 if __name__ == "__main__":

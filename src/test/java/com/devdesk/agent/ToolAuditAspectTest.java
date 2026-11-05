@@ -60,7 +60,7 @@ class ToolAuditAspectTest {
 
     @Test
     void Ticket_Tool은_type과_resource만_기록한다() {
-        TicketTools tools = proxy(new TicketTools(new TicketRepository(), tracker));
+        TicketTools tools = proxy(new TicketTools(new InMemoryTicketRepository(), tracker));
 
         tools.createTicket(TicketType.ACCESS_REQUEST, "DEV_DB",
                 "person@example.com의 신규 프로젝트", context("user1"));
@@ -124,7 +124,7 @@ class ToolAuditAspectTest {
     @Test
     void 여러_Tool_호출순서를_보존한다() {
         AccessTools accessTools = proxy(new AccessTools(new AccessRepository(), tracker));
-        TicketTools ticketTools = proxy(new TicketTools(new TicketRepository(), tracker));
+        TicketTools ticketTools = proxy(new TicketTools(new InMemoryTicketRepository(), tracker));
 
         accessTools.getAccessStatus("DEV_DB", context("user1"));
         ticketTools.createTicket(TicketType.ACCESS_REQUEST, "DEV_DB", "신규 프로젝트", context("user1"));

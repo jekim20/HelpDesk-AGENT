@@ -51,7 +51,7 @@ class DevDeskToolsTest {
 
     @Test
     void 쓰기_Tool은_PENDING_티켓만_만든다() {
-        TicketRepository repository = new TicketRepository();
+        TicketRepository repository = new InMemoryTicketRepository();
         TicketTools tools = new TicketTools(repository, new ToolInvocationTracker());
 
         String result = tools.createTicket(

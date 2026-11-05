@@ -12,7 +12,7 @@ ChatController ── HTTP validation
 HelpDeskService
   ├─ Prompt Injection·입력 안전성 검사 (Memory·RAG·Tool보다 먼저)
   ├─ deterministic access route ── AccessTools ── AccessRepository(in-memory)
-  ├─ explicit task route ───────── TicketTools ── TicketRepository(in-memory, PENDING)
+  ├─ explicit task route ───────── TicketTools ── TicketRepository(PostgreSQL, PENDING)
   └─ conversational route
        ↓
      TokenMeter → Safety Advisor → Chat Memory → RAG → LLM + registered Tools
@@ -64,4 +64,4 @@ Memory key는 `userId:sessionId`다. 동일 sessionId라도 userId가 다르면 
 
 ### 실행 범위
 
-`AccessRepository`, `TicketRepository`, Chat Memory와 VectorStore는 인메모리 구현이다. 실제 IAM·ITSM 연동, 서버 측 인증, 관리자 API 보호는 현재 구현 범위 밖이다. 기본 fallback 모델명은 primary와 동일하며 `FALLBACK_MODEL`로 별도 지정할 수 있다.
+`TicketRepository`는 PostgreSQL에 저장하며 Flyway migration을 사용한다. `AccessRepository`, Chat Memory와 VectorStore는 여전히 인메모리다. 실제 IAM·ITSM 연동은 범위 밖이다. 기본 fallback 모델명은 primary와 동일하며 `FALLBACK_MODEL`로 별도 지정할 수 있다.

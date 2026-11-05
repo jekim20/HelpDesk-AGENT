@@ -74,7 +74,7 @@ class RagRetrievalTest {
 
         ChatClient testClient = ChatClient.create(prompt -> new ChatResponse(
                 List.of(new Generation(new AssistantMessage("정책 문서 기반 테스트 응답")))));
-        TicketRepository ticketRepository = new TicketRepository();
+        TicketRepository ticketRepository = new InMemoryTicketRepository();
         ToolInvocationTracker invocationTracker = new ToolInvocationTracker();
         HelpDeskService service = new HelpDeskService(
                 testClient,

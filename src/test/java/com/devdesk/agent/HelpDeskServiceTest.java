@@ -36,7 +36,7 @@ class HelpDeskServiceTest {
                 .chatMemoryRepository(new InMemoryChatMemoryRepository())
                 .maxMessages(20)
                 .build();
-        tickets = new TicketRepository();
+        tickets = new InMemoryTicketRepository();
         ToolInvocationTracker invocationTracker = new ToolInvocationTracker();
         accessTools = new AccessTools(new AccessRepository(), invocationTracker);
         ticketTools = new TicketTools(tickets, invocationTracker);
@@ -90,7 +90,7 @@ class HelpDeskServiceTest {
 
         ToolInvocationTracker tracker = new ToolInvocationTracker();
         AccessTools modelAccessTools = new AccessTools(new AccessRepository(), tracker);
-        TicketTools modelTicketTools = new TicketTools(new TicketRepository(), tracker);
+        TicketTools modelTicketTools = new TicketTools(new InMemoryTicketRepository(), tracker);
         HelpDeskService llmService = new HelpDeskService(
                 client,
                 mock(ChatClient.class),

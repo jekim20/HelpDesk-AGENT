@@ -25,6 +25,7 @@ ext {
 dependencies {
     // ── 웹 · 문서 ──────────────────────────────────────────────
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-aop'
@@ -36,6 +37,11 @@ dependencies {
     implementation 'org.springframework.ai:spring-ai-advisors-vector-store'    // QuestionAnswerAdvisor
     implementation 'org.springframework.ai:spring-ai-tika-document-reader'     // 정책 문서 인제스트
 
+    // ── 영속 티켓 저장소 ───────────────────────────────────────
+    implementation 'org.flywaydb:flyway-core'
+    runtimeOnly 'org.flywaydb:flyway-database-postgresql'
+    runtimeOnly 'org.postgresql:postgresql'
+
     // ── 테스트 ─────────────────────────────────────────────────
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
@@ -45,6 +51,9 @@ dependencyManagement {
     imports { mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}" }
 }
 
-tasks.named('test') { useJUnitPlatform() }
+tasks.named('test') {
+    useJUnitPlatform()
+    systemProperty 'spring.profiles.default', 'test-memory'
+}
 
 springBoot { mainClass = 'com.devdesk.agent.DevDeskApplication' }

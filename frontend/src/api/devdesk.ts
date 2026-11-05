@@ -86,7 +86,6 @@ async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
   if (changesState) headers.set(csrfHeaderName, csrfToken);
 
   let response: Response;
-
   try {
     response = await fetch(input, { ...init, headers, credentials: "same-origin" });
   } catch {
@@ -94,7 +93,16 @@ async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
-    throw new DevDeskApiError(statusMessage(response.status), response.status);
+    let message = statusMessage(response.status);
+    if (response.status === 400 || response.status === 409) {
+      try {
+        const body = (await response.json()) as { answer?: unknown };
+        if (typeof body.answer === "string" && body.answer) message = body.answer;
+      } catch {
+        // Keep the status-based message when the response is not JSON.
+      }
+    }
+    throw new DevDeskApiError(message, response.status);
   }
 
   return (await response.json()) as T;
@@ -151,10 +159,10 @@ export function loadHistory(sessionId: string): Promise<string[]> {
   return requestJson<string[]>(`/api/history?sessionId=${encodeURIComponent(sessionId)}`);
 }
 
-export function sendChat(request: ChatRequest): Promise<ChatResponse> {
+export function sendChat(request: ChatRequest, idempotencyKey: string): Promise<ChatResponse> {
   return requestJson<ChatResponse>("/api/chat", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
     body: JSON.stringify(request),
   });
 }

@@ -8,6 +8,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
 import com.devdesk.agent.TicketRepository.Ticket;
+import com.devdesk.agent.TicketRepository.TicketCreation;
 import com.devdesk.agent.TicketRepository.TicketType;
 
 @Component
@@ -30,9 +31,22 @@ public class TicketTools {
             ToolContext context) {
         try {
             String userId = AccessTools.currentUser(context);
-            Ticket ticket = ticketRepository.create(type, resource, reason, userId);
+            Object rawKey = context == null ? null : context.getContext().get("idempotencyKey");
+            if (rawKey == null || !IdempotencyKey.isValid(rawKey.toString())) {
+                throw new IllegalArgumentException("A valid idempotency key is required for ticket creation.");
+            }
+            TicketCreation creation = ticketRepository.create(
+                    type, resource, reason, userId, rawKey.toString());
+            Ticket ticket = creation.ticket();
+            if (creation.replayed()) {
+                return "동일한 요청이 이미 접수되어 기존 %s 티켓을 반환했습니다. 상태는 PENDING입니다."
+                        .formatted(ticket.id());
+            }
             return "%s 요청을 %s 티켓으로 접수했습니다. 상태는 PENDING이며 담당자 승인 또는 확인 후 처리됩니다."
                     .formatted(resource, ticket.id());
+        } catch (IdempotencyConflictException conflict) {
+            invocationTracker.markFailed();
+            throw conflict;
         } catch (RuntimeException error) {
             invocationTracker.markFailed();
             log.warn("티켓 저장소 접수 실패 type={} resource={}", type, resource);

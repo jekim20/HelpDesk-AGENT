@@ -90,6 +90,11 @@ public class HelpDeskService {
     }
 
     public ChatResult chat(String question, String sessionId, String userId, boolean simulatePrimaryFailure) {
+        return chat(question, sessionId, userId, simulatePrimaryFailure, null);
+    }
+
+    public ChatResult chat(String question, String sessionId, String userId, boolean simulatePrimaryFailure,
+                           String idempotencyKey) {
         String conversationId = conversationId(userId, sessionId);
         String validation = validate(question, sessionId, userId);
         if (validation != null) {
@@ -120,14 +125,21 @@ public class HelpDeskService {
             }
         }
         if (isTicketRequest(question)) {
+            if (!IdempotencyKey.isValid(idempotencyKey)) {
+                return new ChatResult("티켓 생성 요청에는 유효한 Idempotency-Key가 필요합니다.",
+                        sessionId, List.of(), false, List.of(), false);
+            }
             TicketType type = ticketType(question);
             String target = resource == null ? ticketTarget(question) : resource;
             invocationTracker.begin();
             try {
-                String answer = ticketTools.createTicket(type, target, question, toolContext(userId));
+                String answer = ticketTools.createTicket(type, target, question,
+                        toolContext(userId, IdempotencyKey.canonical(idempotencyKey)));
                 remember(conversationId, question, answer);
                 return new ChatResult(answer, sessionId, List.of(), true,
                         invocationTracker.snapshot(), false);
+            } catch (IdempotencyConflictException conflict) {
+                throw new IdempotencyConflictException(invocationTracker.snapshot());
             } finally {
                 invocationTracker.clear();
             }
@@ -149,6 +161,10 @@ public class HelpDeskService {
         } finally {
             invocationTracker.clear();
         }
+    }
+
+    public boolean requiresIdempotencyKey(String question) {
+        return isTicketRequest(question);
     }
 
     public List<String> history(String sessionId, String userId) {
@@ -262,6 +278,10 @@ public class HelpDeskService {
 
     private ToolContext toolContext(String userId) {
         return new ToolContext(Map.of("userId", userId));
+    }
+
+    private ToolContext toolContext(String userId, String idempotencyKey) {
+        return new ToolContext(Map.of("userId", userId, "idempotencyKey", idempotencyKey));
     }
 
     private String conversationId(String userId, String sessionId) {

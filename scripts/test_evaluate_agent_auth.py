@@ -7,6 +7,7 @@ import os
 import tempfile
 import threading
 import unittest
+import uuid
 from pathlib import Path
 from unittest.mock import patch
 
@@ -128,7 +129,7 @@ class MockHandler(http.server.BaseHTTPRequestHandler):
                     or (payload.get("simulatePrimaryFailure") and identity != "admin")):
                 self._send(403)
                 return
-            self.state.chat_requests.append((identity, payload))
+            self.state.chat_requests.append((identity, payload, self.headers.get("Idempotency-Key")))
             response = {"answer": "mock answer", "toolUsed": False, "toolCalls": [], "sources": []}
             self._send(200, json.dumps(response).encode(), {"Content-Type": "application/json"})
             return
@@ -159,12 +160,37 @@ class AuthenticatedEvaluatorTest(unittest.TestCase):
         client = self.client()
         status, _, _ = client.post_json("/api/chat", {
             "question": "hello", "sessionId": "s1", "userId": "user1",
-        })
+        }, idempotency_key=str(uuid.uuid4()))
 
         self.assertEqual(200, status)
         self.assertTrue(any(cookie.name == "SID" for cookie in client.cookie_jar))
         self.assertEqual("csrf-user1-2", client.csrf_token)
         self.assertEqual("user1", self.state.chat_requests[0][0])
+        self.assertTrue(self.state.chat_requests[0][2])
+
+    def test_network_retry_reuses_the_same_idempotency_key(self):
+        client = self.client()
+        original_request = client._request
+        seen_keys = []
+
+        def lose_first_response(method, path, data=None, headers=None):
+            if path == "/api/chat":
+                seen_keys.append(headers.get("Idempotency-Key"))
+                response = original_request(method, path, data, headers)
+                if len(seen_keys) == 1:
+                    raise EVALUATOR.EvaluationAborted("simulated lost response")
+                return response
+            return original_request(method, path, data, headers)
+
+        client._request = lose_first_response
+        key = str(uuid.uuid4())
+        status, _, _ = client.post_json("/api/chat", {
+            "question": "request", "sessionId": "retry", "userId": "user1",
+        }, idempotency_key=key)
+
+        self.assertEqual(200, status)
+        self.assertEqual([key, key], seen_keys)
+        self.assertEqual([key, key], [entry[2] for entry in self.state.chat_requests])
 
     def test_login_failure_is_authentication_error(self):
         client = EVALUATOR.EvaluationClient(self.base_url, "user1", "wrong", timeout=2)
@@ -243,6 +269,51 @@ class AuthenticatedEvaluatorTest(unittest.TestCase):
             serialized = (results_dir / "latest.json").read_text(encoding="utf-8")
             self.assertNotIn(secret, serialized)
             self.assertNotIn("SID=session-", serialized)
+
+    def test_each_evaluation_turn_gets_a_fresh_key_without_saving_keys(self):
+        captured_keys = []
+
+        def deterministic_ticket_post(client, path, payload, idempotency_key=None):
+            captured_keys.append(idempotency_key)
+            return 200, {
+                "answer": "요청이 PENDING으로 접수되었습니다.",
+                "toolUsed": True,
+                "toolCalls": [{
+                    "toolName": "createTicket", "toolArguments": {},
+                    "success": True, "latencyMs": 1,
+                }],
+                "sources": [],
+            }, 1.0
+
+        with tempfile.TemporaryDirectory() as output_dir:
+            root = Path(output_dir)
+            scenario_file = root / "scenario.json"
+            scenario_file.write_text(json.dumps([{
+                "id": "KEYS", "name": "per-turn keys", "category": "TICKET",
+                "userId": "user1", "sessionId": "key-session",
+                "turns": [
+                    {"question": "first", "expected": {
+                        "httpStatus": 200, "toolUsed": True,
+                        "expectedToolCalls": [{"toolName": "createTicket", "arguments": {}, "success": True}],
+                    }},
+                    {"question": "second", "expected": {
+                        "httpStatus": 200, "toolUsed": True,
+                        "expectedToolCalls": [{"toolName": "createTicket", "arguments": {}, "success": True}],
+                    }},
+                ],
+            }]), encoding="utf-8")
+            results_dir = root / "results"
+            with patch.dict(os.environ, {"APP_USER1_PASSWORD": "secret-user1"}), patch.object(
+                    EVALUATOR.sys, "argv", ["evaluate-agent.py", "--base-url", self.base_url,
+                    "--scenarios", str(scenario_file), "--skip-ingest",
+                    "--output-dir", str(results_dir)]), patch.object(
+                    EVALUATOR.EvaluationClient, "post_json", new=deterministic_ticket_post):
+                self.assertEqual(0, EVALUATOR.main())
+
+            self.assertEqual(2, len(set(captured_keys)))
+            self.assertTrue(all(key and len(key) == 36 for key in captured_keys))
+            serialized = (results_dir / "latest.json").read_text(encoding="utf-8")
+            self.assertNotIn("Idempotency-Key", serialized)
             self.assertNotIn("Cookie", serialized)
 
     def test_login_failure_aborts_without_writing_result_or_echoing_secret(self):

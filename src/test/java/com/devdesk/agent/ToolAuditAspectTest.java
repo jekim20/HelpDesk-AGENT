@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -96,7 +97,7 @@ class ToolAuditAspectTest {
     @Test
     void Ticket_Repository_실패를_업무실패로_기록한다() {
         TicketRepository repository = mock(TicketRepository.class);
-        when(repository.create(any(), any(), any(), any()))
+        when(repository.create(any(), any(), any(), any(), any()))
                 .thenThrow(new RuntimeException("api-key=ticket-secret"));
         TicketTools tools = proxy(new TicketTools(repository, tracker));
 
@@ -164,7 +165,7 @@ class ToolAuditAspectTest {
     }
 
     private ToolContext context(String userId) {
-        return new ToolContext(Map.of("userId", userId));
+        return new ToolContext(Map.of("userId", userId, "idempotencyKey", UUID.randomUUID().toString()));
     }
 
     @SuppressWarnings("unchecked")

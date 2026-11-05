@@ -2,6 +2,7 @@ import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "
 
 import {
   ChatResponse,
+  ChatRequest,
   CurrentUser,
   DevDeskApiError,
   Ticket,
@@ -26,6 +27,8 @@ interface ConversationEntry {
   historical?: boolean;
   response?: ChatResponse;
   error?: string;
+  retry?: { request: ChatRequest; key: string };
+  retryable?: boolean;
 }
 
 interface SuggestedQuestion {
@@ -378,6 +381,33 @@ function App() {
     conversationEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [entries, isSending]);
 
+  async function dispatchChat(id: number, request: ChatRequest, key: string) {
+    setIsSending(true);
+    try {
+      const response = await sendChat(request, key);
+      setEntries((current) => current.map((item) => item.id === id
+        ? { ...item, response, error: undefined, retry: undefined, retryable: false }
+        : item));
+      setBackendStatus("connected");
+      if (hasPendingState(response) && isAdmin(currentUser)) void refreshTickets();
+    } catch (error) {
+      if (error instanceof DevDeskApiError && error.status === 401) {
+        setCurrentUser(null);
+        setLoginError(error.message);
+      }
+      setEntries((current) => current.map((item) => item.id === id
+        ? {
+            ...item,
+            error: formatApiError(error),
+            retryable: !(error instanceof DevDeskApiError && [400, 401, 403, 409].includes(error.status ?? 0)),
+          }
+        : item));
+      setBackendStatus(error instanceof DevDeskApiError && error.status ? "connected" : "unavailable");
+    } finally {
+      setIsSending(false);
+    }
+  }
+
   async function handleSubmit(event?: FormEvent) {
     event?.preventDefault();
     const trimmedQuestion = question.trim();
@@ -386,42 +416,28 @@ function App() {
     if (!currentUser || !trimmedQuestion || !trimmedSessionId || isSending) return;
 
     const id = nextId.current++;
+    const request: ChatRequest = {
+      question: trimmedQuestion,
+      sessionId: trimmedSessionId,
+      simulatePrimaryFailure: isAdmin(currentUser) && simulatePrimaryFailure,
+    };
+    const key = crypto.randomUUID();
     const entry: ConversationEntry = {
       id,
       question: trimmedQuestion,
       userId: currentUser.username,
       sessionId: trimmedSessionId,
+      retry: { request, key },
     };
 
     setEntries((current) => [...current, entry]);
     setQuestion("");
-    setIsSending(true);
+    void dispatchChat(id, request, key);
+  }
 
-    try {
-      const response = await sendChat({
-        question: trimmedQuestion,
-        sessionId: trimmedSessionId,
-        simulatePrimaryFailure: isAdmin(currentUser) && simulatePrimaryFailure,
-      });
-      setEntries((current) =>
-        current.map((item) => (item.id === id ? { ...item, response } : item)),
-      );
-      setBackendStatus("connected");
-      if (hasPendingState(response) && isAdmin(currentUser)) void refreshTickets();
-    } catch (error) {
-      if (error instanceof DevDeskApiError && error.status === 401) {
-        setCurrentUser(null);
-        setLoginError(error.message);
-      }
-      setEntries((current) =>
-        current.map((item) =>
-          item.id === id ? { ...item, error: formatApiError(error) } : item,
-        ),
-      );
-      setBackendStatus(error instanceof DevDeskApiError && error.status ? "connected" : "unavailable");
-    } finally {
-      setIsSending(false);
-    }
+  function retryChat(entry: ConversationEntry) {
+    if (!entry.retry || isSending) return;
+    void dispatchChat(entry.id, entry.retry.request, entry.retry.key);
   }
 
   function handleQuestionKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -568,6 +584,11 @@ function App() {
                     <div className="message__meta"><strong>Request error</strong></div>
                     <p>{entry.error}</p>
                     <small>Check that the Spring Boot backend is running on port 8080.</small>
+                    {entry.retryable && entry.retry && (
+                      <button className="text-button" disabled={isSending} onClick={() => retryChat(entry)} type="button">
+                        Retry same request
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

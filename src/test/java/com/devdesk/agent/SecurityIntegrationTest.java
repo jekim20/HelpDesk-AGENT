@@ -153,7 +153,8 @@ class SecurityIntegrationTest {
     void ADMIN은_전체_티켓과_문서_인제스트에_접근할_수_있다() throws Exception {
         MockHttpSession admin = login("admin", ADMIN_PASSWORD);
         var ticket = ticketRepository.create(
-                TicketRepository.TicketType.INCIDENT, "VPN", "security integration fixture", "user1");
+                TicketRepository.TicketType.INCIDENT, "VPN", "security integration fixture", "user1",
+                UUID.randomUUID().toString()).ticket();
         when(ingestService.ingest(any(Resource.class), any(), any()))
                 .thenAnswer(invocation -> new IngestService.IngestResult(
                         ((Resource) invocation.getArgument(0)).getFilename(), 1));
@@ -238,6 +239,50 @@ class SecurityIntegrationTest {
     }
 
     @Test
+    void 쓰기_Key_누락은_400이며_정보질문은_Key_없이_계속_호출할_수_있다() throws Exception {
+        MockHttpSession user = login("user1", USER1_PASSWORD);
+        int initialCount = ticketRepository.findAll().size();
+
+        mvc.perform(post("/api/chat").session(user).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ChatController.ChatRequest(
+                                "DEV_DB 권한을 신청해줘.", "no-key", null, false))))
+                .andExpect(status().isBadRequest());
+        assertThat(ticketRepository.findAll()).hasSize(initialCount);
+
+        mvc.perform(post("/api/chat").session(user).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ChatController.ChatRequest(
+                                "내 DEV_DB 권한 상태 알려줘.", "read-no-key", null, false))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void 같은_Key_재전송은_한_티켓을_반환하고_다른_내용은_409와_실패_Trace를_반환한다() throws Exception {
+        MockHttpSession user = login("user1", USER1_PASSWORD);
+        int initialCount = ticketRepository.findAll().size();
+        String key = UUID.randomUUID().toString();
+        String sessionId = "idempotency-" + UUID.randomUUID();
+        var first = chat(user, "DEV_DB 권한을 신청해줘. 동일 요청", sessionId, null, key)
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        var retry = chat(user, "DEV_DB 권한을 신청해줘. 동일 요청", sessionId, null, key)
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+
+        assertThat(ticketRepository.findAll()).hasSize(initialCount + 1);
+        assertThat(retry).contains("동일한 요청이 이미 접수");
+        assertThat(retry).contains(first.substring(first.indexOf("HD-"), first.indexOf("HD-") + 7));
+
+        mvc.perform(post("/api/chat").session(user).with(csrf()).header("Idempotency-Key", key)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new ChatController.ChatRequest(
+                                "VPN 장애 티켓을 접수해줘. 다른 내용", sessionId, null, false))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.toolUsed").value(true))
+                .andExpect(jsonPath("$.toolCalls[0].success").value(false));
+        assertThat(ticketRepository.findAll()).hasSize(initialCount + 1);
+    }
+
+    @Test
     void CSRF_토큰이_없는_인증된_변경_요청은_차단한다() throws Exception {
         MockHttpSession user = login("user1", USER1_PASSWORD);
 
@@ -270,7 +315,14 @@ class SecurityIntegrationTest {
 
     private org.springframework.test.web.servlet.ResultActions chat(
             MockHttpSession session, String question, String sessionId, String userId) throws Exception {
+        return chat(session, question, sessionId, userId, UUID.randomUUID().toString());
+    }
+
+    private org.springframework.test.web.servlet.ResultActions chat(
+            MockHttpSession session, String question, String sessionId, String userId, String idempotencyKey)
+            throws Exception {
         return mvc.perform(post("/api/chat").session(session).with(csrf())
+                .header("Idempotency-Key", idempotencyKey)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(
                         new ChatController.ChatRequest(question, sessionId, userId, false))));

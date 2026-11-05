@@ -94,7 +94,7 @@ class RagRetrievalTest {
                 service, mock(IngestService.class), ticketRepository);
 
         var apiResponse = controller.chat(new ChatController.ChatRequest(
-                question, "rag-regression", "user1", false),
+                question, "rag-regression", "user1", false), null,
                 UsernamePasswordAuthenticationToken.authenticated(
                         "user1", null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
 

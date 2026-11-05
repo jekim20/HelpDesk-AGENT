@@ -15,6 +15,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -133,15 +134,24 @@ class EvaluationClient:
             raise AuthenticationFailed("로그인 세션의 사용자 신원이 요청한 평가 계정과 다릅니다.")
         self.authenticated = True
 
-    def post_json(self, path: str, payload: dict[str, Any]) -> tuple[int, dict[str, Any], float]:
+    def post_json(self, path: str, payload: dict[str, Any],
+                  idempotency_key: str | None = None) -> tuple[int, dict[str, Any], float]:
         if not self.authenticated:
             raise AuthenticationFailed("인증되지 않은 평가 클라이언트의 요청을 차단했습니다.")
         self.refresh_csrf()
         started = time.perf_counter()
-        status, raw = self._request(
-            "POST", path, json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-            {"Content-Type": "application/json", self.csrf_header: self.csrf_token},
-        )
+        headers = {"Content-Type": "application/json", self.csrf_header: self.csrf_token}
+        if idempotency_key is not None:
+            headers["Idempotency-Key"] = idempotency_key
+        request_body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        attempts = 2 if path == "/api/chat" and idempotency_key is not None else 1
+        for attempt in range(attempts):
+            try:
+                status, raw = self._request("POST", path, request_body, headers)
+                break
+            except EvaluationAborted:
+                if attempt + 1 == attempts:
+                    raise
         latency_ms = round((time.perf_counter() - started) * 1000, 2)
         if status == 401:
             raise SessionExpired(f"인증 세션 만료 (HTTP 401): {path}")
@@ -510,8 +520,15 @@ def main() -> int:
                     "userId": client.username,
                     "simulatePrimaryFailure": bool(turn.get("simulatePrimaryFailure", False)),
                 }
-                status, body, latency_ms = client.post_json("/api/chat", payload)
                 expected = turn["expected"]
+                ticket_write = any(
+                    call.get("toolName") == "createTicket"
+                    for call in expected.get("expectedToolCalls", [])
+                )
+                # Reuse this key for an automatic transport retry; each turn gets a fresh key.
+                idempotency_key = str(uuid.uuid4()) if ticket_write else None
+                status, body, latency_ms = client.post_json(
+                    "/api/chat", payload, idempotency_key=idempotency_key)
                 failures = evaluate_turn(expected, status, body)
                 turn_results.append({
                     "question": turn["question"],

@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,7 +35,10 @@ public class ChatController {
     }
 
     @PostMapping("/chat")
-    public ResponseEntity<ChatResult> chat(@RequestBody ChatRequest request, Authentication authentication) {
+    public ResponseEntity<ChatResult> chat(@RequestBody ChatRequest request,
+                                           @RequestHeader(value = "Idempotency-Key", required = false)
+                                           String idempotencyKey,
+                                           Authentication authentication) {
         if (request == null || request.question() == null || request.question().isBlank()) {
             String sessionId = request == null ? null : request.sessionId();
             return ResponseEntity.badRequest().body(
@@ -59,8 +63,21 @@ public class ChatController {
                     "모델 장애 시뮬레이션은 관리자만 사용할 수 있습니다.", request.sessionId(),
                     List.of(), false, List.of(), false));
         }
-        return ResponseEntity.ok(helpDeskService.chat(
-                request.question(), request.sessionId(), authenticatedUserId, simulateFailure));
+        if (helpDeskService.requiresIdempotencyKey(request.question())
+                && !IdempotencyKey.isValid(idempotencyKey)) {
+            return ResponseEntity.badRequest().body(new ChatResult(
+                    "티켓 생성 요청에는 UUID 형식의 Idempotency-Key가 필요합니다.",
+                    request.sessionId(), List.of(), false, List.of(), false));
+        }
+        try {
+            return ResponseEntity.ok(helpDeskService.chat(request.question(), request.sessionId(),
+                    authenticatedUserId, simulateFailure,
+                    IdempotencyKey.isValid(idempotencyKey) ? IdempotencyKey.canonical(idempotencyKey) : idempotencyKey));
+        } catch (IdempotencyConflictException conflict) {
+            return ResponseEntity.status(409).body(new ChatResult(
+                    "같은 Idempotency-Key가 다른 티켓 내용에 이미 사용되었습니다. 새 요청에는 새 키를 사용해 주세요.",
+                    request.sessionId(), List.of(), !conflict.toolCalls().isEmpty(), conflict.toolCalls(), false));
+        }
     }
 
     @PostMapping("/ingest")

@@ -19,7 +19,7 @@ class ChatControllerTest {
         ChatController controller = new ChatController(
                 service, mock(IngestService.class), mock(TicketRepository.class));
 
-        var response = controller.chat(new ChatController.ChatRequest("", "session", "user1", false),
+        var response = controller.chat(new ChatController.ChatRequest("", "session", "user1", false), null,
                 UsernamePasswordAuthenticationToken.authenticated(
                         "user1", null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
 

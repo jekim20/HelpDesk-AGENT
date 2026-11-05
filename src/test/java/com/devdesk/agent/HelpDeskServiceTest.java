@@ -75,6 +75,41 @@ class HelpDeskServiceTest {
     }
 
     @Test
+    void 티켓_요청은_Key가_없으면_저장하지_않는다() {
+        HelpDeskService.ChatResult result = service.chat(
+                "DEV_DB 권한을 신청해줘.", "missing-key", "user1", false);
+
+        assertThat(result.answer()).contains("Idempotency-Key");
+        assertThat(result.toolUsed()).isFalse();
+        assertThat(tickets.findAll()).isEmpty();
+    }
+
+    @Test
+    void 같은_Key와_같은_내용은_기존_티켓을_반환한다() {
+        String key = "d6de8cb1-42a1-421a-95d8-2f8e78b1f004";
+        String question = "DEV_DB 권한을 신청해줘. 동일 요청";
+        HelpDeskService.ChatResult first = service.chat(question, "same-key", "user1", false, key);
+        HelpDeskService.ChatResult replay = service.chat(
+                "DEV_DB   권한을 신청해줘. 동일 요청", "same-key", "user1", false, key);
+
+        assertThat(tickets.findAll()).hasSize(1);
+        assertThat(replay.answer()).contains("동일한 요청이 이미 접수", "PENDING");
+        assertThat(replay.answer()).contains(first.answer().substring(first.answer().indexOf("HD-"),
+                first.answer().indexOf("HD-") + 7));
+    }
+
+    @Test
+    void 같은_Key에_다른_내용은_충돌한다() {
+        String key = "d6de8cb1-42a1-421a-95d8-2f8e78b1f005";
+        service.chat("DEV_DB 권한을 신청해줘. 첫 요청", "conflict", "user1", false, key);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.chat(
+                "DEV_DB 권한을 신청해줘. 다른 요청", "conflict", "user1", false, key))
+                .isInstanceOf(IdempotencyConflictException.class);
+        assertThat(tickets.findAll()).hasSize(1);
+    }
+
+    @Test
     void 일반_LLM_경로의_ToolContext는_호출자가_전달한_인증_신원으로_구성한다() {
         ChatClient client = mock(ChatClient.class);
         ChatClient.ChatClientRequestSpec requestSpec = mock(ChatClient.ChatClientRequestSpec.class);
@@ -125,7 +160,8 @@ class HelpDeskServiceTest {
     @Test
     void 권한신청은_PENDING_티켓만_생성한다() {
         HelpDeskService.ChatResult result = service.chat(
-                "PROD_DB 권한을 신청해줘. 장애 대응에 필요해.", "session-2", "user1", false);
+                "PROD_DB 권한을 신청해줘. 장애 대응에 필요해.", "session-2", "user1", false,
+                "d6de8cb1-42a1-421a-95d8-2f8e78b1f001");
 
         assertThat(result.toolUsed()).isTrue();
         assertThat(result.answer()).contains("PENDING").doesNotContain("APPROVED");
@@ -157,7 +193,7 @@ class HelpDeskServiceTest {
     void 명시적인_티켓_요청은_인증된_요청자로_PENDING_티켓을_생성한다() {
         HelpDeskService.ChatResult result = service.chat(
                 "DEV_DB 권한을 신청해줘. 신규 프로젝트 개발에 필요해.",
-                "explicit-write", "principal-user", false);
+                "explicit-write", "principal-user", false, "d6de8cb1-42a1-421a-95d8-2f8e78b1f002");
 
         assertThat(result.toolUsed()).isTrue();
         assertThat(result.answer()).contains("PENDING");
@@ -176,7 +212,7 @@ class HelpDeskServiceTest {
     }, delimiter = '|')
     void 티켓종류는_사유의_키워드보다_요청행동을_우선한다(
             String question, TicketRepository.TicketType expectedType, String expectedResource) {
-        service.chat(question, "ticket-type", "user1", false);
+        service.chat(question, "ticket-type", "user1", false, java.util.UUID.randomUUID().toString());
 
         assertThat(tickets.findAll()).singleElement().satisfies(ticket -> {
             assertThat(ticket.type()).isEqualTo(expectedType);
@@ -189,7 +225,7 @@ class HelpDeskServiceTest {
     void 권한조회_후속신청도_이전_resource와_ACCESS_REQUEST를_유지한다() {
         service.chat("내 PROD_DB 권한 상태 알려줘.", "ticket-memory", "user1", false);
         service.chat("그 권한 신청해줘. 운영 장애 대응 업무 때문이야.",
-                "ticket-memory", "user1", false);
+                "ticket-memory", "user1", false, "d6de8cb1-42a1-421a-95d8-2f8e78b1f003");
 
         assertThat(tickets.findAll()).singleElement().satisfies(ticket -> {
             assertThat(ticket.type()).isEqualTo(TicketRepository.TicketType.ACCESS_REQUEST);

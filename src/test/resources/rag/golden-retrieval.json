@@ -1,0 +1,98 @@
+[
+  {
+    "id": "RAG-001",
+    "query": "VPN 승인에는 보통 며칠이 걸리나요?",
+    "expectedSources": ["vpn-guide.md"],
+    "category": "VPN_POLICY"
+  },
+  {
+    "id": "RAG-002",
+    "query": "사외에서 사내 개발 자원에 접속하려면 무엇을 사용하나요?",
+    "expectedSources": ["vpn-guide.md"],
+    "category": "VPN_POLICY"
+  },
+  {
+    "id": "RAG-003",
+    "query": "원격 접속 권한을 받을 때 팀장 승인과 보안 검토가 필요한가요?",
+    "expectedSources": ["vpn-guide.md"],
+    "category": "VPN_POLICY"
+  },
+  {
+    "id": "RAG-004",
+    "query": "VPN 문의에 비밀번호나 OTP를 적어도 되나요?",
+    "expectedSources": ["vpn-guide.md"],
+    "category": "VPN_POLICY"
+  },
+  {
+    "id": "RAG-005",
+    "query": "운영 DB 접근에 적용되는 권한 원칙은 무엇인가요?",
+    "expectedSources": ["database-access-policy.md"],
+    "category": "DATABASE_POLICY"
+  },
+  {
+    "id": "RAG-006",
+    "query": "PROD_DB를 쓰려면 어떤 업무 사유와 승인이 필요한가요?",
+    "expectedSources": ["database-access-policy.md"],
+    "category": "DATABASE_POLICY"
+  },
+  {
+    "id": "RAG-007",
+    "query": "운영 작업이 끝난 뒤 데이터베이스 권한은 어떻게 되나요?",
+    "expectedSources": ["database-access-policy.md"],
+    "category": "DATABASE_POLICY"
+  },
+  {
+    "id": "RAG-008",
+    "query": "개발 DB 권한 신청 시 프로젝트명 외에 무엇을 적어야 하나요?",
+    "expectedSources": ["database-access-policy.md"],
+    "category": "DATABASE_POLICY"
+  },
+  {
+    "id": "RAG-009",
+    "query": "HelpDesk 접근 권한 요청에 반드시 포함해야 하는 두 가지 정보는 무엇인가요?",
+    "expectedSources": ["access-request-guide.md"],
+    "category": "ACCESS_REQUEST"
+  },
+  {
+    "id": "RAG-010",
+    "query": "지원되는 접근 권한 대상 리소스는 무엇인가요?",
+    "expectedSources": ["access-request-guide.md"],
+    "category": "ACCESS_REQUEST"
+  },
+  {
+    "id": "RAG-011",
+    "query": "접근 요청을 접수하면 Agent가 즉시 권한을 승인해 주나요?",
+    "expectedSources": ["access-request-guide.md"],
+    "category": "ACCESS_REQUEST"
+  },
+  {
+    "id": "RAG-012",
+    "query": "권한 요청은 어떤 티켓 상태로 생성되고 언제 처리되나요?",
+    "expectedSources": ["access-request-guide.md"],
+    "category": "ACCESS_REQUEST"
+  },
+  {
+    "id": "RAG-013",
+    "query": "장애를 신고할 때 발생 시각 외에 어떤 정보를 남겨야 하나요?",
+    "expectedSources": ["incident-response-guide.md"],
+    "category": "INCIDENT_RESPONSE"
+  },
+  {
+    "id": "RAG-014",
+    "query": "계정 로그인 문제는 어떤 유형의 티켓으로 접수하나요?",
+    "expectedSources": ["incident-response-guide.md"],
+    "category": "INCIDENT_RESPONSE"
+  },
+  {
+    "id": "RAG-015",
+    "query": "개발 시스템 장애를 접수하면 바로 해결 완료 상태가 되나요?",
+    "expectedSources": ["incident-response-guide.md"],
+    "category": "INCIDENT_RESPONSE"
+  },
+  {
+    "id": "RAG-016",
+    "query": "VPN 접속 실패가 반복될 때 어떤 정보를 적어 장애 접수해야 하나요?",
+    "expectedSources": ["vpn-guide.md", "incident-response-guide.md"],
+    "category": "INCIDENT_RESPONSE"
+  }
+]

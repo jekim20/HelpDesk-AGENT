@@ -4,13 +4,18 @@
 from __future__ import annotations
 
 import argparse
+import http.cookiejar
 import json
 import math
+import os
+import re
 import statistics
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -20,65 +25,175 @@ class EvaluationAborted(RuntimeError):
     """Raised when the evaluation environment cannot serve valid requests."""
 
 
+class AuthenticationFailed(EvaluationAborted):
+    """Raised when evaluator credentials cannot establish the requested identity."""
+
+
+class SessionExpired(EvaluationAborted):
+    """Raised when an authenticated session expires during evaluation."""
+
+
+class SecurityRequestRejected(EvaluationAborted):
+    """Raised when the server rejects a request for authorization or CSRF reasons."""
+
+
+ACCOUNT_ENV = {
+    "user1": "APP_USER1_PASSWORD",
+    "user2": "APP_USER2_PASSWORD",
+    "admin": "APP_ADMIN_PASSWORD",
+}
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Evaluate the DevDesk Agent API")
     parser.add_argument("--base-url", default="http://localhost:8080")
     parser.add_argument("--scenarios", default="evaluation/agent_scenarios.json")
-    parser.add_argument("--output-dir", default="evaluation/results")
+    parser.add_argument("--output-dir", help="New run directory; existing latest.* files are never overwritten")
     parser.add_argument("--timeout", type=float, default=60.0)
     parser.add_argument("--skip-ingest", action="store_true",
                         help="Do not call POST /api/ingest before evaluation")
     return parser.parse_args()
 
 
-def post_chat(base_url: str, payload: dict[str, Any], timeout: float) -> tuple[int, dict[str, Any], float]:
-    request = urllib.request.Request(
-        f"{base_url.rstrip('/')}/api/chat",
-        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-        headers={"Content-Type": "application/json", "Accept": "application/json"},
-        method="POST",
-    )
-    started = time.perf_counter()
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            status = response.status
-            raw = response.read().decode("utf-8")
-    except urllib.error.HTTPError as error:
-        status = error.code
-        raw = error.read().decode("utf-8", errors="replace")
-    except (urllib.error.URLError, TimeoutError, ConnectionError) as error:
-        raise EvaluationAborted(f"서버 연결 실패: {base_url} ({error})") from error
-    latency_ms = round((time.perf_counter() - started) * 1000, 2)
+class EvaluationClient:
+    """One authenticated principal with its own cookie jar and refreshed CSRF token."""
 
-    if status == 401:
-        raise EvaluationAborted("인증 실패(HTTP 401): OPENAI_API_KEY와 모델 연결을 확인하세요.")
-    try:
-        body = json.loads(raw) if raw else {}
-    except json.JSONDecodeError:
-        body = {"answer": raw, "parseError": "response was not JSON"}
-    return status, body, latency_ms
+    def __init__(self, base_url: str, username: str, password: str, timeout: float):
+        self.base_url = base_url.rstrip("/")
+        self.username = username
+        self.password = password
+        self.timeout = timeout
+        self.cookie_jar = http.cookiejar.CookieJar()
+        self.opener = urllib.request.build_opener(
+            urllib.request.HTTPCookieProcessor(self.cookie_jar)
+        )
+        self.csrf_token: str | None = None
+        self.csrf_header: str | None = None
+        self.authenticated = False
+
+    def _request(self, method: str, path: str, data: bytes | None = None,
+                 headers: dict[str, str] | None = None) -> tuple[int, str]:
+        request = urllib.request.Request(
+            f"{self.base_url}{path}", data=data,
+            headers={"Accept": "application/json", **(headers or {})}, method=method,
+        )
+        try:
+            with self.opener.open(request, timeout=self.timeout) as response:
+                return response.status, response.read().decode("utf-8", errors="replace")
+        except urllib.error.HTTPError as error:
+            status = error.code
+            raw = error.read().decode("utf-8", errors="replace")
+            error.close()
+            return status, raw
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as error:
+            raise EvaluationAborted(f"서버 연결 실패: {self.base_url} ({error})") from error
+
+    def refresh_csrf(self) -> None:
+        status, raw = self._request("GET", "/api/csrf")
+        if status == 401:
+            raise SessionExpired("CSRF 토큰 조회 중 인증 세션이 만료되었습니다 (HTTP 401).")
+        if status >= 400:
+            raise SecurityRequestRejected(f"CSRF 토큰 조회 실패 (HTTP {status}).")
+        try:
+            body = json.loads(raw)
+            token = body["token"]
+            header = body["headerName"]
+        except (json.JSONDecodeError, KeyError, TypeError) as error:
+            raise EvaluationAborted("/api/csrf 응답 형식이 올바르지 않습니다.") from error
+        if not isinstance(token, str) or not token or not isinstance(header, str) or not header:
+            raise EvaluationAborted("/api/csrf 응답에 유효한 토큰 또는 헤더명이 없습니다.")
+        self.csrf_token, self.csrf_header = token, header
+
+    def login(self) -> None:
+        self.refresh_csrf()
+        form = urllib.parse.urlencode({"username": self.username, "password": self.password}).encode()
+        try:
+            status, _ = self._request("POST", "/login", form, {
+                "Content-Type": "application/x-www-form-urlencoded",
+                self.csrf_header: self.csrf_token,
+            })
+        finally:
+            self.password = ""
+        if status == 401:
+            raise AuthenticationFailed(f"로그인 실패: 계정 '{self.username}'의 자격 증명을 확인하세요.")
+        if status < 200 or status >= 300:
+            raise AuthenticationFailed(f"로그인 실패 (HTTP {status}), 계정 '{self.username}'.")
+
+        # Spring Security may rotate the CSRF token on authentication success.
+        self.refresh_csrf()
+        status, raw = self._request("GET", "/api/me")
+        if status == 401:
+            raise AuthenticationFailed("로그인 후 세션 확인에 실패했습니다 (HTTP 401).")
+        if status >= 400:
+            raise SecurityRequestRejected(f"로그인 후 사용자 확인이 거부되었습니다 (HTTP {status}).")
+        try:
+            actual_user = json.loads(raw).get("username")
+        except (json.JSONDecodeError, AttributeError) as error:
+            raise EvaluationAborted("/api/me 응답 형식이 올바르지 않습니다.") from error
+        if actual_user != self.username:
+            raise AuthenticationFailed("로그인 세션의 사용자 신원이 요청한 평가 계정과 다릅니다.")
+        self.authenticated = True
+
+    def post_json(self, path: str, payload: dict[str, Any],
+                  idempotency_key: str | None = None) -> tuple[int, dict[str, Any], float]:
+        if not self.authenticated:
+            raise AuthenticationFailed("인증되지 않은 평가 클라이언트의 요청을 차단했습니다.")
+        self.refresh_csrf()
+        started = time.perf_counter()
+        headers = {"Content-Type": "application/json", self.csrf_header: self.csrf_token}
+        if idempotency_key is not None:
+            headers["Idempotency-Key"] = idempotency_key
+        request_body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        attempts = 2 if path == "/api/chat" and idempotency_key is not None else 1
+        for attempt in range(attempts):
+            try:
+                status, raw = self._request("POST", path, request_body, headers)
+                break
+            except EvaluationAborted:
+                if attempt + 1 == attempts:
+                    raise
+        latency_ms = round((time.perf_counter() - started) * 1000, 2)
+        if status == 401:
+            raise SessionExpired(f"인증 세션 만료 (HTTP 401): {path}")
+        if status == 403:
+            raise SecurityRequestRejected(f"권한 또는 CSRF 검증 실패 (HTTP 403): {path}")
+        try:
+            body = json.loads(raw) if raw else {}
+        except json.JSONDecodeError:
+            body = {"answer": raw, "parseError": "response was not JSON"}
+        return status, body, latency_ms
 
 
-def ingest_documents(base_url: str, timeout: float) -> None:
-    request = urllib.request.Request(
-        f"{base_url.rstrip('/')}/api/ingest",
-        data=b"",
-        headers={"Accept": "application/json"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            response.read()
-            status = response.status
-    except urllib.error.HTTPError as error:
-        status = error.code
-        error.read()
-    except (urllib.error.URLError, TimeoutError, ConnectionError) as error:
-        raise EvaluationAborted(f"서버 연결 실패: {base_url} ({error})") from error
-    if status == 401:
-        raise EvaluationAborted("인증 실패(HTTP 401): OPENAI_API_KEY와 embedding 연결을 확인하세요.")
-    if status >= 400:
-        raise EvaluationAborted(f"정책 문서 인제스트 실패(HTTP {status})")
+def account_for_user_id(user_id: str) -> str:
+    if user_id not in ACCOUNT_ENV:
+        raise AuthenticationFailed(f"평가 시나리오 userId에 등록된 계정 매핑이 없습니다: {user_id!r}")
+    return user_id
+
+
+def default_output_dir() -> Path:
+    stamp = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S-%f")
+    return Path("evaluation/results/runs") / stamp
+
+
+def ensure_output_is_new(output_dir: Path) -> None:
+    if (output_dir / "latest.json").exists() or (output_dir / "latest.md").exists():
+        raise EvaluationAborted(f"기존 평가 결과를 덮어쓰지 않도록 실행을 중단했습니다: {output_dir}")
+
+
+def account_client(base_url: str, user_id: str, timeout: float,
+                   clients: dict[str, EvaluationClient]) -> EvaluationClient:
+    username = account_for_user_id(user_id)
+    if username not in clients:
+        env_name = ACCOUNT_ENV[username]
+        password = os.environ.get(env_name, "")
+        if not password:
+            raise AuthenticationFailed(
+                f"평가 계정 '{username}'이 비활성화되어 있습니다. 환경변수 {env_name}를 설정하세요."
+            )
+        client = EvaluationClient(base_url, username, password, timeout)
+        client.login()
+        clients[username] = client
+    return clients[username]
 
 
 def contains(haystack: str, needle: str) -> bool:
@@ -212,12 +327,50 @@ def evaluate_turn(expected: dict[str, Any], status: int, body: dict[str, Any]) -
     if missing:
         failures.append(f"answerContainsAll: missing {missing}")
 
+    knowledge_boundary = expected.get("answerKnowledgeBoundary")
+    if knowledge_boundary is not None:
+        failures.extend(evaluate_knowledge_boundary(knowledge_boundary, answer))
+
     forbidden = [str(term) for term in expected.get("answerNotContains", [])]
     exposed = [term for term in forbidden if contains(answer, term)]
     if exposed:
         failures.append(f"answerNotContains: found {exposed}")
 
     return failures
+
+
+def evaluate_knowledge_boundary(rule: dict[str, Any], answer: str) -> list[str]:
+    """Require a topic-linked evidence gap and reject concrete unsupported policy claims."""
+    topic_groups = rule.get("topicGroups", [])
+    if topic_groups:
+        topic_present = all(
+            any(contains(answer, str(topic)) for topic in group)
+            for group in topic_groups
+        )
+    else:
+        topics = [str(topic) for topic in rule.get("topicAny", [])]
+        topic_present = bool(topics) and any(contains(answer, topic) for topic in topics)
+    if not topic_present:
+        return ["answerKnowledgeBoundary: expected answer to identify the full requested topic"]
+
+    sentences = [part.strip() for part in re.split(r"(?<=[.!?。！？])\s+|\n+", answer) if part.strip()]
+    boundary_patterns = rule.get("sourceTopicAbsencePatterns", [])
+    boundary_found = any(
+        re.search(str(pattern), sentence, flags=re.IGNORECASE | re.DOTALL)
+        for pattern in boundary_patterns
+        for sentence in sentences
+    )
+    if not boundary_found:
+        return ["answerKnowledgeBoundary: no sentence links the topic to missing source evidence"]
+
+    unsupported_patterns = rule.get("unsupportedClaimPatterns", [])
+    unsupported = [
+        str(pattern) for pattern in unsupported_patterns
+        if re.search(str(pattern), answer, flags=re.IGNORECASE | re.DOTALL)
+    ]
+    if unsupported:
+        return ["answerKnowledgeBoundary: contains a concrete unsupported policy claim"]
+    return []
 
 
 def percentage(numerator: int, denominator: int) -> float | None:
@@ -337,24 +490,45 @@ def main() -> int:
         print(f"시나리오 파일을 읽을 수 없습니다: {scenario_path} ({error})", file=sys.stderr)
         return 2
 
+    output_dir = Path(args.output_dir) if args.output_dir else default_output_dir()
+    try:
+        ensure_output_is_new(output_dir)
+        for scenario in scenarios:
+            account_for_user_id(scenario.get("userId", ""))
+    except EvaluationAborted as error:
+        print(str(error), file=sys.stderr)
+        return 2
+
     print("DevDesk Agent Evaluation")
     print("========================")
     results: list[dict[str, Any]] = []
+    clients: dict[str, EvaluationClient] = {}
     try:
         if not args.skip_ingest:
-            ingest_documents(args.base_url, args.timeout)
+            admin = account_client(args.base_url, "admin", args.timeout, clients)
+            status, _, _ = admin.post_json("/api/ingest", {})
+            if status >= 400:
+                raise EvaluationAborted(f"정책 문서 인제스트 실패 (HTTP {status})")
             print("[READY] policy documents ingested")
         for scenario in scenarios:
+            client = account_client(args.base_url, scenario["userId"], args.timeout, clients)
             turn_results = []
             for turn in scenario["turns"]:
                 payload = {
                     "question": turn["question"],
                     "sessionId": scenario["sessionId"],
-                    "userId": scenario["userId"],
+                    "userId": client.username,
                     "simulatePrimaryFailure": bool(turn.get("simulatePrimaryFailure", False)),
                 }
-                status, body, latency_ms = post_chat(args.base_url, payload, args.timeout)
                 expected = turn["expected"]
+                ticket_write = any(
+                    call.get("toolName") == "createTicket"
+                    for call in expected.get("expectedToolCalls", [])
+                )
+                # Reuse this key for an automatic transport retry; each turn gets a fresh key.
+                idempotency_key = str(uuid.uuid4()) if ticket_write else None
+                status, body, latency_ms = client.post_json(
+                    "/api/chat", payload, idempotency_key=idempotency_key)
                 failures = evaluate_turn(expected, status, body)
                 turn_results.append({
                     "question": turn["question"],
@@ -375,7 +549,7 @@ def main() -> int:
             })
             print(f"[{'PASS' if passed else 'FAIL'}] {scenario['id']} {scenario['name']}")
     except EvaluationAborted as error:
-        print(str(error), file=sys.stderr)
+        print(f"[{type(error).__name__}] {error}", file=sys.stderr)
         print("평가 결과 파일을 갱신하지 않았습니다.", file=sys.stderr)
         return 2
 
@@ -385,7 +559,6 @@ def main() -> int:
         "summary": summarize(results),
         "scenarios": results,
     }
-    output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     (output_dir / "latest.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

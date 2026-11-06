@@ -7,9 +7,11 @@ import java.util.List;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,21 +35,49 @@ public class ChatController {
     }
 
     @PostMapping("/chat")
-    public ResponseEntity<ChatResult> chat(@RequestBody ChatRequest request) {
+    public ResponseEntity<ChatResult> chat(@RequestBody ChatRequest request,
+                                           @RequestHeader(value = "Idempotency-Key", required = false)
+                                           String idempotencyKey,
+                                           Authentication authentication) {
         if (request == null || request.question() == null || request.question().isBlank()) {
             String sessionId = request == null ? null : request.sessionId();
             return ResponseEntity.badRequest().body(
                     new ChatResult("질문을 입력해 주세요.", sessionId, List.of(), false, List.of(), false));
         }
-        if (request.sessionId() == null || request.sessionId().isBlank()
-                || request.userId() == null || request.userId().isBlank()) {
+        if (request.sessionId() == null || request.sessionId().isBlank()) {
             return ResponseEntity.badRequest().body(new ChatResult(
-                    "sessionId와 userId는 필수입니다.", request.sessionId(),
+                    "sessionId는 필수입니다.", request.sessionId(),
                     List.of(), false, List.of(), false));
         }
-        return ResponseEntity.ok(helpDeskService.chat(
-                request.question(), request.sessionId(), request.userId(),
-                Boolean.TRUE.equals(request.simulatePrimaryFailure())));
+        String authenticatedUserId = authentication.getName();
+        if (request.userId() != null && !request.userId().isBlank()
+                && !request.userId().equals(authenticatedUserId)) {
+            return ResponseEntity.status(403).body(new ChatResult(
+                    "요청 userId가 인증 사용자와 일치하지 않습니다.", request.sessionId(),
+                    List.of(), false, List.of(), false));
+        }
+        boolean simulateFailure = Boolean.TRUE.equals(request.simulatePrimaryFailure());
+        if (simulateFailure && authentication.getAuthorities().stream()
+                .noneMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"))) {
+            return ResponseEntity.status(403).body(new ChatResult(
+                    "모델 장애 시뮬레이션은 관리자만 사용할 수 있습니다.", request.sessionId(),
+                    List.of(), false, List.of(), false));
+        }
+        if (helpDeskService.requiresIdempotencyKey(request.question())
+                && !IdempotencyKey.isValid(idempotencyKey)) {
+            return ResponseEntity.badRequest().body(new ChatResult(
+                    "티켓 생성 요청에는 UUID 형식의 Idempotency-Key가 필요합니다.",
+                    request.sessionId(), List.of(), false, List.of(), false));
+        }
+        try {
+            return ResponseEntity.ok(helpDeskService.chat(request.question(), request.sessionId(),
+                    authenticatedUserId, simulateFailure,
+                    IdempotencyKey.isValid(idempotencyKey) ? IdempotencyKey.canonical(idempotencyKey) : idempotencyKey));
+        } catch (IdempotencyConflictException conflict) {
+            return ResponseEntity.status(409).body(new ChatResult(
+                    "같은 Idempotency-Key가 다른 티켓 내용에 이미 사용되었습니다. 새 요청에는 새 키를 사용해 주세요.",
+                    request.sessionId(), List.of(), !conflict.toolCalls().isEmpty(), conflict.toolCalls(), false));
+        }
     }
 
     @PostMapping("/ingest")
@@ -57,8 +87,13 @@ public class ChatController {
     }
 
     @GetMapping("/history")
-    public List<String> history(@RequestParam String sessionId, @RequestParam String userId) {
-        return helpDeskService.history(sessionId, userId);
+    public ResponseEntity<List<String>> history(@RequestParam String sessionId,
+                                                @RequestParam(required = false) String userId,
+                                                Authentication authentication) {
+        if (userId != null && !userId.isBlank() && !userId.equals(authentication.getName())) {
+            return ResponseEntity.status(403).build();
+        }
+        return ResponseEntity.ok(helpDeskService.history(sessionId, authentication.getName()));
     }
 
     @GetMapping("/admin/tickets")

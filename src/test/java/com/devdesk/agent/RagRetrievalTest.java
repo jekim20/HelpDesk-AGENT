@@ -28,6 +28,8 @@ import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 class RagRetrievalTest {
 
@@ -72,7 +74,7 @@ class RagRetrievalTest {
 
         ChatClient testClient = ChatClient.create(prompt -> new ChatResponse(
                 List.of(new Generation(new AssistantMessage("정책 문서 기반 테스트 응답")))));
-        TicketRepository ticketRepository = new TicketRepository();
+        TicketRepository ticketRepository = new InMemoryTicketRepository();
         ToolInvocationTracker invocationTracker = new ToolInvocationTracker();
         HelpDeskService service = new HelpDeskService(
                 testClient,
@@ -92,7 +94,9 @@ class RagRetrievalTest {
                 service, mock(IngestService.class), ticketRepository);
 
         var apiResponse = controller.chat(new ChatController.ChatRequest(
-                question, "rag-regression", "user1", false));
+                question, "rag-regression", "user1", false), null,
+                UsernamePasswordAuthenticationToken.authenticated(
+                        "user1", null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
 
         assertThat(apiResponse.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(apiResponse.getBody()).isNotNull();

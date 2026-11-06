@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.model.ToolContext;
@@ -51,7 +52,7 @@ class DevDeskToolsTest {
 
     @Test
     void 쓰기_Tool은_PENDING_티켓만_만든다() {
-        TicketRepository repository = new TicketRepository();
+        TicketRepository repository = new InMemoryTicketRepository();
         TicketTools tools = new TicketTools(repository, new ToolInvocationTracker());
 
         String result = tools.createTicket(
@@ -68,7 +69,7 @@ class DevDeskToolsTest {
     @Test
     void 티켓_저장소_장애시_접수성공으로_응답하지_않는다() {
         TicketRepository repository = mock(TicketRepository.class);
-        when(repository.create(any(), any(), any(), any()))
+        when(repository.create(any(), any(), any(), any(), any()))
                 .thenThrow(new RuntimeException("itsm-token=secret-detail"));
 
         String result = new TicketTools(repository, new ToolInvocationTracker()).createTicket(
@@ -80,6 +81,6 @@ class DevDeskToolsTest {
     }
 
     private ToolContext context(String userId) {
-        return new ToolContext(Map.of("userId", userId));
+        return new ToolContext(Map.of("userId", userId, "idempotencyKey", UUID.randomUUID().toString()));
     }
 }

@@ -1,0 +1,26 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "StartPortForwardOnlyToHelpDeskInstance",
+      "Effect": "Allow",
+      "Action": "ssm:StartSession",
+      "Resource": [
+        "arn:aws:ec2:ap-northeast-2:ACCOUNT_ID:instance/INSTANCE_ID",
+        "arn:aws:ssm:ap-northeast-2:ACCOUNT_ID:document/AWS-StartPortForwardingSession"
+      ]
+    },
+    {
+      "Sid": "DescribeManagedInstancesForConsoleAndCli",
+      "Effect": "Allow",
+      "Action": "ssm:DescribeInstanceInformation",
+      "Resource": "*"
+    },
+    {
+      "Sid": "TerminateOnlyOwnSessions",
+      "Effect": "Allow",
+      "Action": "ssm:TerminateSession",
+      "Resource": "arn:aws:ssm:ap-northeast-2:ACCOUNT_ID:session/${aws:username}-*"
+    }
+  ]
+}

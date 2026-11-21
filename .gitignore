@@ -18,3 +18,9 @@ __pycache__/
 frontend/node_modules/
 frontend/dist/
 frontend/*.tsbuildinfo
+/artifacts/e2e/runs/
+
+# Local E2E and deployment files
+/e2e/node_modules/
+/e2e/artifacts/
+/.env.deploy.local

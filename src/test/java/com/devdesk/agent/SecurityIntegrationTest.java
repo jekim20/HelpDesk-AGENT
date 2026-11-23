@@ -18,6 +18,8 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.RequestDispatcher;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -178,6 +180,26 @@ class SecurityIntegrationTest {
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
                         .jsonPath("$.components").doesNotExist());
         mvc.perform(get("/actuator/prometheus"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void ERROR_dispatch는_인증_실패로_가려지지_않고_서버_오류를_유지한다() throws Exception {
+        var result = mvc.perform(get("/error").with(request -> {
+                    request.setDispatcherType(DispatcherType.ERROR);
+                    request.setAttribute(RequestDispatcher.ERROR_STATUS_CODE, 500);
+                    request.setAttribute(RequestDispatcher.ERROR_REQUEST_URI, "/api/chat");
+                    request.setAttribute(RequestDispatcher.ERROR_MESSAGE, "sensitive-test-error-detail");
+                    request.setAttribute(RequestDispatcher.ERROR_EXCEPTION,
+                            new IllegalStateException("sensitive-test-error-detail"));
+                    return request;
+                }))
+                .andExpect(status().isInternalServerError())
+                .andReturn();
+
+        assertThat(result.getResponse().getContentAsString())
+                .doesNotContain("sensitive-test-error-detail", "IllegalStateException", "trace", "exception");
+        mvc.perform(get("/error"))
                 .andExpect(status().isUnauthorized());
     }
 

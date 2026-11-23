@@ -13,6 +13,20 @@ jobs:
   verify:
     name: Test and build
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: helpdesk_test
+          POSTGRES_USER: helpdesk
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U helpdesk -d helpdesk_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Check out repository
@@ -31,6 +45,9 @@ jobs:
           python-version: "3.12"
 
       - name: Run Java tests
+        env:
+          TICKET_IT_DB_URL: jdbc:postgresql://127.0.0.1:5432/helpdesk_test
+          TICKET_IT_DB_USERNAME: helpdesk
         run: ./gradlew test
 
       - name: Run Python evaluator tests
@@ -38,3 +55,65 @@ jobs:
 
       - name: Verify application build
         run: ./gradlew build
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            e2e/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend for production
+        working-directory: frontend
+        run: npm run build
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate ARM64 backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/arm64
+          push: false
+          tags: helpdesk-agent:${{ github.sha }}
+
+      - name: Validate ARM64 frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.frontend
+          platforms: linux/arm64
+          push: false
+          tags: helpdesk-frontend:${{ github.sha }}
+
+      - name: Install E2E dependencies
+        working-directory: e2e
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run isolated browser E2E
+        run: npm test --prefix e2e
+        timeout-minutes: 20
+
+      - name: Upload E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: helpdesk-e2e-${{ github.run_id }}
+          path: artifacts/e2e/runs/
+          if-no-files-found: ignore
+          retention-days: 14

@@ -1,0 +1,31 @@
+services:
+  ai-mock:
+    build:
+      context: ./e2e/mock-ai
+    environment:
+      MOCK_AI_MODE: success
+    ports:
+      - "127.0.0.1:${AI_MOCK_PORT}:8081"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/health', timeout=2)"]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+    mem_limit: 128m
+    cpus: 0.5
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+    networks:
+      - app_net
+
+  app:
+    environment:
+      SPRING_AI_OPENAI_BASE_URL: http://ai-mock:8081
+      SPRING_AI_RETRY_MAX_ATTEMPTS: 1
+      SPRING_AI_OPENAI_MAX_RETRIES: 1
+    depends_on:
+      ai-mock:
+        condition: service_healthy

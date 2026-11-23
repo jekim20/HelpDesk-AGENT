@@ -2,9 +2,12 @@ package com.devdesk.agent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
+import java.util.function.Consumer;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -12,6 +15,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.client.advisor.api.AdvisorChain;
 import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
@@ -72,8 +76,7 @@ class RagRetrievalTest {
         assertThat(advisorDocuments).isNotEmpty();
         assertThat(advisorDocuments.getFirst().getMetadata().get("source")).isEqualTo(expectedSource);
 
-        ChatClient testClient = ChatClient.create(prompt -> new ChatResponse(
-                List.of(new Generation(new AssistantMessage("정책 문서 기반 테스트 응답")))));
+        ChatClient testClient = chatClientWithSources(expectedSource);
         TicketRepository ticketRepository = new InMemoryTicketRepository();
         ToolInvocationTracker invocationTracker = new ToolInvocationTracker();
         HelpDeskService service = new HelpDeskService(
@@ -109,6 +112,31 @@ class RagRetrievalTest {
                 .topK(5)
                 .similarityThreshold(threshold)
                 .build();
+    }
+
+    private ChatClient chatClientWithSources(String source) {
+        ChatClient client = mock(ChatClient.class);
+        ChatClient.ChatClientRequestSpec requestSpec = mock(ChatClient.ChatClientRequestSpec.class);
+        ChatClient.CallResponseSpec responseSpec = mock(ChatClient.CallResponseSpec.class);
+        when(client.prompt()).thenReturn(requestSpec);
+        when(requestSpec.user(org.mockito.ArgumentMatchers.anyString())).thenReturn(requestSpec);
+        when(requestSpec.advisors(org.mockito.ArgumentMatchers
+                .<Consumer<ChatClient.AdvisorSpec>>any())).thenReturn(requestSpec);
+        when(requestSpec.tools(org.mockito.ArgumentMatchers.any(Object[].class))).thenReturn(requestSpec);
+        when(requestSpec.toolContext(org.mockito.ArgumentMatchers.anyMap())).thenReturn(requestSpec);
+        when(requestSpec.call()).thenReturn(responseSpec);
+
+        Document retrievedDocument = new Document("테스트 정책 문서", Map.of("source", source));
+        ChatClientResponse response = ChatClientResponse.builder()
+                .chatResponse(ChatResponse.builder()
+                        .generations(List.of(new Generation(
+                                new AssistantMessage("정책 문서 기반 테스트 응답"))))
+                        .build())
+                .context(Map.of(QuestionAnswerAdvisor.RETRIEVED_DOCUMENTS,
+                        List.of(retrievedDocument)))
+                .build();
+        when(responseSpec.chatClientResponse()).thenReturn(response);
+        return client;
     }
 
     private static Stream<Arguments> retrievalCases() {

@@ -17,9 +17,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.vectorstore.VectorStore;
 
 class HelpDeskServiceTest {
@@ -50,7 +54,12 @@ class HelpDeskServiceTest {
         when(primaryRequestSpec.tools(any(Object[].class))).thenReturn(primaryRequestSpec);
         when(primaryRequestSpec.toolContext(anyMap())).thenReturn(primaryRequestSpec);
         when(primaryRequestSpec.call()).thenReturn(primaryResponseSpec);
-        when(primaryResponseSpec.content()).thenReturn("정책 안내 응답");
+        when(primaryResponseSpec.chatClientResponse()).thenReturn(ChatClientResponse.builder()
+                .chatResponse(ChatResponse.builder()
+                        .generations(java.util.List.of(new Generation(new AssistantMessage("정책 안내 응답"))))
+                        .build())
+                .context(Map.of())
+                .build());
         service = new HelpDeskService(
                 primaryClient,
                 mock(ChatClient.class),
@@ -121,7 +130,12 @@ class HelpDeskServiceTest {
         when(requestSpec.tools(any(Object[].class))).thenReturn(requestSpec);
         when(requestSpec.toolContext(anyMap())).thenReturn(requestSpec);
         when(requestSpec.call()).thenReturn(responseSpec);
-        when(responseSpec.content()).thenReturn("정책 답변");
+        when(responseSpec.chatClientResponse()).thenReturn(ChatClientResponse.builder()
+                .chatResponse(ChatResponse.builder()
+                        .generations(java.util.List.of(new Generation(new AssistantMessage("정책 답변"))))
+                        .build())
+                .context(Map.of())
+                .build());
 
         ToolInvocationTracker tracker = new ToolInvocationTracker();
         AccessTools modelAccessTools = new AccessTools(new AccessRepository(), tracker);

@@ -14,7 +14,6 @@ evaluation
 finetuning
 results*
 *.sha256
-frontend
 README.md
 docs
 scripts

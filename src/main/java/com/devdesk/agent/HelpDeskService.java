@@ -68,15 +68,15 @@ public class HelpDeskService {
     private final Map<String, String> conversationResources = new ConcurrentHashMap<>();
 
     public HelpDeskService(@Qualifier("devDeskPrimaryClient") ChatClient primaryClient,
-                           @Qualifier("devDeskFallbackClient") ChatClient fallbackClient,
-                           ChatMemory memory,
-                           VectorStore vectorStore,
-                           AccessTools accessTools,
-                           TicketTools ticketTools,
-                           ModelFallbackExecutor fallbackExecutor,
-                           ToolInvocationTracker invocationTracker,
-                           UserInputSafetyAdvisor userInputSafety,
-                           PromptInjectionGuard promptInjectionGuard) {
+            @Qualifier("devDeskFallbackClient") ChatClient fallbackClient,
+            ChatMemory memory,
+            VectorStore vectorStore,
+            AccessTools accessTools,
+            TicketTools ticketTools,
+            ModelFallbackExecutor fallbackExecutor,
+            ToolInvocationTracker invocationTracker,
+            UserInputSafetyAdvisor userInputSafety,
+            PromptInjectionGuard promptInjectionGuard) {
         this.primaryClient = primaryClient;
         this.fallbackClient = fallbackClient;
         this.memory = memory;
@@ -94,7 +94,7 @@ public class HelpDeskService {
     }
 
     public ChatResult chat(String question, String sessionId, String userId, boolean simulatePrimaryFailure,
-                           String idempotencyKey) {
+            String idempotencyKey) {
         String conversationId = conversationId(userId, sessionId);
         String validation = validate(question, sessionId, userId);
         if (validation != null) {
@@ -175,7 +175,8 @@ public class HelpDeskService {
         return client.prompt()
                 .user(question)
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
-                // The model path is read-only. Ticket writes are routed only by the server-side intent gate.
+                // The model path is read-only. Ticket writes are routed only by the server-side
+                // intent gate.
                 .tools(accessTools)
                 .toolContext(Map.of("userId", userId))
                 .call()
@@ -183,20 +184,26 @@ public class HelpDeskService {
     }
 
     String validate(String question, String sessionId, String userId) {
-        if (question == null || question.isBlank()) return "질문을 입력해 주세요.";
-        if (question.length() > MAX_INPUT_LENGTH) return "입력이 너무 깁니다. 4,000자 이내로 줄여 주세요.";
+        if (question == null || question.isBlank())
+            return "질문을 입력해 주세요.";
+        if (question.length() > MAX_INPUT_LENGTH)
+            return "입력이 너무 깁니다. 4,000자 이내로 줄여 주세요.";
         if (sessionId == null || sessionId.isBlank() || userId == null || userId.isBlank()) {
             return "sessionId와 userId는 필수입니다.";
         }
-        if (promptInjectionGuard.isSuspicious(question)) return PromptInjectionGuard.BLOCK_RESPONSE;
+        if (promptInjectionGuard.isSuspicious(question))
+            return PromptInjectionGuard.BLOCK_RESPONSE;
         return userInputSafety.rejectionFor(question);
     }
 
     private String explicitResource(String question) {
         String normalized = question.toUpperCase(java.util.Locale.ROOT);
-        if (normalized.contains("PROD_DB") || question.contains("운영 DB")) return "PROD_DB";
-        if (normalized.contains("DEV_DB") || question.contains("개발 DB")) return "DEV_DB";
-        if (normalized.contains("VPN")) return "VPN";
+        if (normalized.contains("PROD_DB") || question.contains("운영 DB"))
+            return "PROD_DB";
+        if (normalized.contains("DEV_DB") || question.contains("개발 DB"))
+            return "DEV_DB";
+        if (normalized.contains("VPN"))
+            return "VPN";
         return null;
     }
 
@@ -207,7 +214,8 @@ public class HelpDeskService {
     private boolean isAccessLookup(String question, String resource) {
         return resource != null && question.contains("권한") && !question.contains("정책")
                 && (question.contains("상태") || question.contains("조회") || question.contains("확인")
-                || question.contains("알려")) && !isTicketRequest(question);
+                        || question.contains("알려"))
+                && !isTicketRequest(question);
     }
 
     private boolean isUnsupportedAccessLookup(String question, String resource) {
@@ -223,7 +231,7 @@ public class HelpDeskService {
         return EXPLICIT_ACCESS_REQUEST.matcher(unquoted).find()
                 || EXPLICIT_TICKET_OPERATION.matcher(unquoted).find()
                 || (ACCESS_DOMAIN.matcher(unquoted).find()
-                && EXPLICIT_ACCESS_ACTION.matcher(unquoted).find());
+                        && EXPLICIT_ACCESS_ACTION.matcher(unquoted).find());
     }
 
     private TicketType ticketType(String question) {
@@ -243,7 +251,8 @@ public class HelpDeskService {
     }
 
     private String ticketTarget(String question) {
-        if (question.toUpperCase(java.util.Locale.ROOT).contains("VPN")) return "VPN";
+        if (question.toUpperCase(java.util.Locale.ROOT).contains("VPN"))
+            return "VPN";
         return ticketType(question).name();
     }
 
@@ -255,20 +264,26 @@ public class HelpDeskService {
     }
 
     private List<String> findSources(String question) {
+        long started = System.nanoTime();
+
         try {
             Set<String> sources = new LinkedHashSet<>();
             vectorStore.similaritySearch(SearchRequest.builder()
-                            .query(question).topK(5)
-                            .similarityThreshold(AgentConfiguration.DEV_DESK_RAG_SIMILARITY_THRESHOLD)
-                            .build())
+                    .query(question).topK(5)
+                    .similarityThreshold(AgentConfiguration.DEV_DESK_RAG_SIMILARITY_THRESHOLD)
+                    .build())
                     .forEach(document -> {
                         Object source = document.getMetadata().get("source");
-                        if (source != null) sources.add(source.toString());
+                        if (source != null)
+                            sources.add(source.toString());
                     });
             return List.copyOf(sources);
         } catch (RuntimeException error) {
             log.warn("RAG source 조회 실패; source 목록을 비워 반환합니다.");
             return List.of();
+        } finally {
+            double elapsedMs = (System.nanoTime() - started) / 1_000_000.0;
+            log.info("[PERF] rag.source.lookup latencyMs={}", elapsedMs);
         }
     }
 
@@ -289,5 +304,6 @@ public class HelpDeskService {
     }
 
     public record ChatResult(String answer, String sessionId, List<String> sources,
-                             boolean toolUsed, List<ToolCallInfo> toolCalls, boolean fallbackUsed) {}
+            boolean toolUsed, List<ToolCallInfo> toolCalls, boolean fallbackUsed) {
+    }
 }

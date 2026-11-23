@@ -34,8 +34,8 @@
         "ecr:GetDownloadUrlForLayer"
       ],
       "Resource": [
-        "arn:aws:ecr:ap-northeast-2:ACCOUNT_ID:repository/helpdesk-app",
-        "arn:aws:ecr:ap-northeast-2:ACCOUNT_ID:repository/helpdesk-frontend"
+        "arn:aws:ecr:ap-southeast-2:ACCOUNT_ID:repository/helpdesk-backend",
+        "arn:aws:ecr:ap-southeast-2:ACCOUNT_ID:repository/helpdesk-frontend"
       ]
     },
     {
@@ -43,10 +43,10 @@
       "Effect": "Allow",
       "Action": "ssm:GetParameter",
       "Resource": [
-        "arn:aws:ssm:ap-northeast-2:ACCOUNT_ID:parameter/helpdesk/prod/db-password",
-        "arn:aws:ssm:ap-northeast-2:ACCOUNT_ID:parameter/helpdesk/prod/user1-password",
-        "arn:aws:ssm:ap-northeast-2:ACCOUNT_ID:parameter/helpdesk/prod/user2-password",
-        "arn:aws:ssm:ap-northeast-2:ACCOUNT_ID:parameter/helpdesk/prod/admin-password"
+        "arn:aws:ssm:ap-southeast-2:ACCOUNT_ID:parameter/helpdesk/prod/db-password",
+        "arn:aws:ssm:ap-southeast-2:ACCOUNT_ID:parameter/helpdesk/prod/user1-password",
+        "arn:aws:ssm:ap-southeast-2:ACCOUNT_ID:parameter/helpdesk/prod/user2-password",
+        "arn:aws:ssm:ap-southeast-2:ACCOUNT_ID:parameter/helpdesk/prod/admin-password"
       ]
     },
     {
@@ -56,10 +56,10 @@
       "Resource": "*",
       "Condition": {
         "StringEquals": {
-          "kms:ViaService": "ssm.ap-northeast-2.amazonaws.com"
+          "kms:ViaService": "ssm.ap-southeast-2.amazonaws.com"
         },
         "StringLike": {
-          "kms:EncryptionContext:PARAMETER_ARN": "arn:aws:ssm:ap-northeast-2:ACCOUNT_ID:parameter/helpdesk/prod/*"
+          "kms:EncryptionContext:PARAMETER_ARN": "arn:aws:ssm:ap-southeast-2:ACCOUNT_ID:parameter/helpdesk/prod/*"
         }
       }
     },

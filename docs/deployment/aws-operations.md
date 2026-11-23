@@ -1,6 +1,6 @@
 # AWS ARM64 deployment operations
 
-This guide prepares a private, single-instance demo in `ap-northeast-2`. It does not create AWS resources. Do not run any AWS command below until the resource list and estimated spend have been approved.
+This guide prepares a private, single-instance demo in `ap-southeast-2`. It does not create AWS resources. Do not run any AWS command below until the resource list and estimated spend have been approved.
 
 ## Deployment files
 
@@ -19,12 +19,12 @@ All shell scripts disable tracing. They do not print parameter values. Applicati
 
 ## AWS resources and settings to approve
 
-1. One EC2 `t4g.medium` running Amazon Linux 2023 ARM64 in `ap-northeast-2`, with CPU credit mode `standard` for predictable spend. The OS/root EBS volume can be deleted with the instance; PostgreSQL data is on the separate data volume below.
+1. One EC2 `t4g.small` running Amazon Linux 2023 ARM64 in `ap-southeast-2`, with CPU credit mode `standard` for predictable spend. The OS/root EBS volume can be deleted with the instance; PostgreSQL data is on the separate data volume below.
 2. One encrypted gp3 EBS data volume (20 GiB initial proposal), attached separately and tagged `Project=helpdesk-ai-agent`. Keep it after instance termination (`DeleteOnTermination=false`). Snapshot retention is a separate cost and must be selected explicitly.
 3. One security group with **no ingress rules**. Allow TCP 443 egress for SSM, ECR, S3, package updates, and later explicitly approved HTTPS AI calls. Do not expose ports 22, 5432, or 8080.
 4. One instance profile with `deploy/aws/iam/instance-role-policy.template.json` narrowed to the actual account, ECR repos, parameter ARNs, backup bucket/prefix, and KMS context. It grants no EC2 create/modify/terminate or IAM permissions.
-5. Two private ECR repositories (`helpdesk-app`, `helpdesk-frontend`) with tag immutability enabled. ECR stores the ARM64 image artifacts; runtime references use manifest digests. Keep at least the current and previous release.
-6. One private S3 backup bucket in Seoul with Block Public Access, SSE-S3 default encryption, unique timestamped object keys, and an agreed lifecycle (initial proposal: 30 days). The host role can read/write only `helpdesk/postgres/*`; it cannot delete backups.
+5. Two private ECR repositories (`helpdesk-backend`, `helpdesk-frontend`) with tag immutability enabled. ECR stores the ARM64 image artifacts; runtime references use manifest digests. Keep at least the current and previous release.
+6. One private S3 backup bucket in Sydney (`ap-southeast-2`) with Block Public Access, SSE-S3 default encryption, unique timestamped object keys, and an agreed lifecycle (initial proposal: 30 days). The host role can read/write only `helpdesk/postgres/*`; it cannot delete backups.
 7. Four required SSM SecureString parameters for DB and demo account passwords. An OpenAI key parameter is optional and must not be created or loaded until Live AI/RAG use is separately approved. Use the AWS-managed `alias/aws/ssm` key to avoid creating a billable customer KMS key unless customer-managed key control is required.
 8. No NAT Gateway, load balancer, RDS, static Elastic IP, or VPC interface endpoints in the initial low-cost topology. Use an automatically assigned public IPv4 in a public subnet, with inbound blocked, for outbound service access. Stop the instance when not testing; automatic public IPv4 is released when stopped.
 
@@ -48,7 +48,7 @@ Mount the verified filesystem at `/srv/helpdesk-data`, configure its UUID in `/e
 8. Open the private demo through an SSM local port-forward (replace the instance ID):
 
    ```sh
-   aws ssm start-session --region ap-northeast-2 \
+   aws ssm start-session --region ap-southeast-2 \
      --target i-REPLACE_WITH_INSTANCE_ID \
      --document-name AWS-StartPortForwardingSession \
      --parameters '{"portNumber":["8080"],"localPortNumber":["8080"]}'
@@ -96,7 +96,7 @@ These checks use temporary local containers and dummy credentials. They do not v
 
 ## Indicative cost estimate
 
-Excluding taxes and variable storage/traffic, the initial estimate uses the Seoul On-Demand t4g.medium rate of about `$0.0416/hour`, public IPv4 `$0.005/hour`, a 20 GiB gp3 root disk plus 20 GiB gp3 data disk at about `$0.0912/GiB-month`. Recheck exact line items in the [AWS Pricing Calculator](https://calculator.aws/) before launch; regional prices and pricing can change. The public IPv4 rate is listed on [AWS VPC pricing](https://aws.amazon.com/vpc/pricing/); see [EC2](https://aws.amazon.com/ec2/pricing/on-demand/) and [EBS](https://aws.amazon.com/ebs/pricing/) pricing pages.
+The previous cost estimate is no longer applicable. Before launch, recalculate Sydney (`ap-southeast-2`) costs for the existing `t4g.small`, root and data EBS, public IPv4, ECR, S3, transfer, and taxes using [AWS Pricing Calculator](https://calculator.aws/). Keep the existing monthly $5 budget alerts and the overall $10 short-test spending target. Budget alerts do not automatically stop spending.
 
 | Usage | EC2 | Public IPv4 | 40 GiB gp3 | Approximate total |
 | --- | ---: | ---: | ---: | ---: |

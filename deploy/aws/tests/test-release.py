@@ -118,7 +118,8 @@ def run_suite():
     image_b, arch_b = reference("postgres:17-alpine", "TEST_POSTGRES_17_DIGEST")
     assert arch_a == arch_b, "PostgreSQL test fixtures must use the same platform"
     absent = "docker.io/library/postgres@sha256:" + "0" * 64
-    with tempfile.TemporaryDirectory(prefix="helpdesk-release-", dir="/tmp") as directory:
+    with tempfile.TemporaryDirectory(prefix="helpdesk-release-", dir="/tmp",
+                                     ignore_cleanup_errors=True) as directory:
         temp = Path(directory).resolve()
         state, data, bin_dir = (temp / name for name in ("state", "data", "bin"))
         for path in (state, data, bin_dir):
@@ -250,6 +251,8 @@ HEALTH_TIMEOUT_SECONDS=8
             return run([*compose, "exec", "-T", "postgres", "psql", "-U", "helpdesk",
                         "-d", "helpdesk", "-Atqc", query]).stdout.strip()
 
+        test_error = None
+        cleanup_error = None
         try:
             call("deploy.sh", a, failure="login", expect=1, message="ECR login failed")
             state_matches(None, None, None)
@@ -264,7 +267,8 @@ HEALTH_TIMEOUT_SECONDS=8
             state_matches(None, None, None)
             assert service("postgres"), first_failure
             pg_id = service("postgres")[0]
-            assert (data / "PG_VERSION").is_file()
+            run([*compose, "exec", "-T", "postgres", "sh", "-c",
+                 'test -f "$PGDATA/PG_VERSION"'])
             sql("create table recovery_probe(value int); insert into recovery_probe values (42);")
             gate.write_text("")
             call("deploy.sh", a)
@@ -339,8 +343,42 @@ HEALTH_TIMEOUT_SECONDS=8
             assert service("postgres")[0] == pg_id and sql("select value from recovery_probe") == "42"
             call("deploy.sh", b, expect=1, message="unfinished release requires manual recovery")
             print("PASS failed recovery stops app/frontend, preserves DB, and blocks a new change", flush=True)
+        except BaseException as exc:
+            test_error = exc
         finally:
-            run([*compose, "down", "--timeout", "2"], check=False)
+            down = run([*compose, "down", "--timeout", "2"], check=False)
+            if down.returncode:
+                cleanup_error = RuntimeError(
+                    "Could not stop the isolated Compose project before cleanup: "
+                    + down.stdout + down.stderr
+                )
+            else:
+                # PostgreSQL owns PGDATA as its container UID (usually 999), so a
+                # Linux runner cannot remove it as the TemporaryDirectory owner.
+                # Reassign only this disposable test directory before Python cleanup.
+                ownership = run([
+                    docker, "run", "--rm", "--user", "0",
+                    "--mount", f"type=bind,source={data},target=/cleanup",
+                    "--entrypoint", "sh", image_a,
+                    "-c", 'chown -R "$1:$2" /cleanup', "cleanup",
+                    str(os.getuid()), str(os.getgid()),
+                ], check=False)
+                if ownership.returncode:
+                    cleanup_error = RuntimeError(
+                        "Could not restore ownership of the isolated PostgreSQL test data: "
+                        + ownership.stdout + ownership.stderr
+                    )
+            try:
+                shutil.rmtree(temp)
+            except OSError as exc:
+                cleanup_error = cleanup_error or exc
+
+        if test_error is not None:
+            if cleanup_error is not None:
+                print(f"WARNING: cleanup also failed: {cleanup_error}", file=sys.stderr)
+            raise test_error
+        if cleanup_error is not None:
+            raise cleanup_error
 
 
 if __name__ == "__main__":

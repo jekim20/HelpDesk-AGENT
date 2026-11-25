@@ -7,12 +7,12 @@
 1. Java 21 full test suite against an ephemeral PostgreSQL service. `TICKET_IT_DB_URL` enables `TicketRepositoryPostgresIntegrationTest`; a separate assertion fails CI unless all 10 tests ran, none skipped, and none failed.
 2. Existing Python evaluator unit tests and Gradle `bootJar`.
 3. Frontend `npm ci` and production build.
-4. Local release rollback/failure-injection suite using ARM64 PostgreSQL fixtures under QEMU.
+4. Release rollback/failure-injection suite on an ARM64 GitHub-hosted runner with native ARM64 PostgreSQL fixtures. This matches the deployment scripts' ARM64 image guard; the suite does not contact AWS.
 5. Backend and frontend `linux/arm64` Buildx validation without push.
 6. Isolated Playwright suite (10 tests). The deterministic mock is used. The RAG browser regression remains in PR CI, while `E2E_RUN_K6=0` leaves the 40-second, 1/5/10/20-VU load profile to deliberate local runs.
 7. JUnit skip/failure summary and upload of JUnit/E2E result files. CI artifacts are retained 14 days.
 
-The hosted workflow has not yet been run for the current dirty worktree. A remote success can only be claimed after the intended changes are reviewed, committed/pushed, and a successful Actions run is tied to that exact commit SHA. CI checks Java, Python, frontend, browser, and ARM64 build contracts; a successful CI run is not an AWS deployment or runtime verification.
+Check GitHub Actions against the exact pushed commit SHA before claiming remote CI success. CI checks Java, Python, frontend, browser, release recovery, and ARM64 build contracts; a successful CI run is not an AWS deployment or runtime verification.
 
 ## Manual release stages
 

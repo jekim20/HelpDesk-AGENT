@@ -100,29 +100,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Pull PostgreSQL fixtures and record manifest digests
-        id: postgres-fixtures
-        run: |
-          set -Eeuo pipefail
-          pg16_output=$(docker pull postgres:16-alpine 2>&1)
-          printf '%s\n' "$pg16_output"
-          pg17_output=$(docker pull postgres:17-alpine 2>&1)
-          printf '%s\n' "$pg17_output"
-          pg16_digest=$(sed -nE 's/^Digest: (sha256:[a-f0-9]{64})$/\1/p' <<<"$pg16_output" | tail -n 1)
-          pg17_digest=$(sed -nE 's/^Digest: (sha256:[a-f0-9]{64})$/\1/p' <<<"$pg17_output" | tail -n 1)
-          [[ "$pg16_digest" =~ ^sha256:[a-f0-9]{64}$ ]]
-          [[ "$pg17_digest" =~ ^sha256:[a-f0-9]{64}$ ]]
-          printf 'pg16_digest=%s\npg17_digest=%s\n' "$pg16_digest" "$pg17_digest" >> "$GITHUB_OUTPUT"
-
-      - name: Run AWS release failure-injection suite
-        env:
-          TEST_POSTGRES_16_DIGEST: ${{ steps.postgres-fixtures.outputs.pg16_digest }}
-          TEST_POSTGRES_17_DIGEST: ${{ steps.postgres-fixtures.outputs.pg17_digest }}
-        run: |
-          set -o pipefail
-          mkdir -p artifacts/ci
-          python deploy/aws/tests/test-release.py | tee artifacts/ci/release-failure-injection.log
-
       - name: Validate ARM64 backend image
         uses: docker/build-push-action@v6
         with:
@@ -190,6 +167,45 @@ jobs:
             build/test-results/test/
             build/reports/tests/test/
             artifacts/e2e/runs/
-            artifacts/ci/release-failure-injection.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  release-failure-injection:
+    name: AWS release failure-injection
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Pull PostgreSQL fixtures and record manifest digests
+        id: postgres-fixtures
+        run: |
+          set -Eeuo pipefail
+          pg16_output=$(docker pull postgres:16-alpine 2>&1)
+          printf '%s\n' "$pg16_output"
+          pg17_output=$(docker pull postgres:17-alpine 2>&1)
+          printf '%s\n' "$pg17_output"
+          pg16_digest=$(sed -nE 's/^Digest: (sha256:[a-f0-9]{64})$/\1/p' <<<"$pg16_output" | tail -n 1)
+          pg17_digest=$(sed -nE 's/^Digest: (sha256:[a-f0-9]{64})$/\1/p' <<<"$pg17_output" | tail -n 1)
+          [[ "$pg16_digest" =~ ^sha256:[a-f0-9]{64}$ ]]
+          [[ "$pg17_digest" =~ ^sha256:[a-f0-9]{64}$ ]]
+          printf 'pg16_digest=%s\npg17_digest=%s\n' "$pg16_digest" "$pg17_digest" >> "$GITHUB_OUTPUT"
+
+      - name: Run AWS release failure-injection suite
+        env:
+          TEST_POSTGRES_16_DIGEST: ${{ steps.postgres-fixtures.outputs.pg16_digest }}
+          TEST_POSTGRES_17_DIGEST: ${{ steps.postgres-fixtures.outputs.pg17_digest }}
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/ci
+          python3 deploy/aws/tests/test-release.py | tee artifacts/ci/release-failure-injection.log
+
+      - name: Upload release failure-injection evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: helpdesk-release-failure-injection-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/ci/release-failure-injection.log
           if-no-files-found: warn
           retention-days: 14

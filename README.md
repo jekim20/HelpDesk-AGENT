@@ -177,7 +177,7 @@ cd frontend && npm install && npm run build
 
 GitHub Actions는 `main` push와 `main` 대상 pull request에서 Java 21 테스트(격리 PostgreSQL 통합 테스트 10개 실행 필수), Python evaluator, Gradle `bootJar`, 프런트엔드 production build, AWS 배포 실패 주입, ARM64 backend/frontend 이미지 빌드 검증, Playwright E2E를 실행한다. E2E의 브라우저 기반 RAG 회귀는 포함하지만 k6 부하 profile은 PR마다 실행하지 않는다. 테스트 결과와 JUnit/E2E 증거는 workflow artifact로 14일 보존한다.
 
-ECR 게시와 AWS 배포는 별도 수동 workflow다. 게시 workflow는 해당 commit의 CI 성공을 확인하고 ARM64 이미지를 한 번 빌드해 digest manifest를 남긴다. 배포 workflow는 게시 run ID와 production 승인 절차를 사용하며 SSM으로 기존 배포 스크립트를 호출한다. 이 로컬 변경은 아직 원격 GitHub Actions에서 실행되지 않았고 OIDC/IAM 설정이나 AWS 배포도 수행하지 않았다. 자세한 절차와 제한은 [CI/CD·모니터링 가이드](docs/deployment/cicd-monitoring.md)를 참고한다.
+ECR 게시와 AWS 배포는 별도 수동 workflow다. 게시 workflow는 해당 commit의 CI 성공을 확인하고 ARM64 이미지를 한 번 빌드해 digest manifest를 남긴다. 배포 workflow는 게시 run ID와 production 승인 절차를 사용하며 SSM으로 기존 배포 스크립트를 호출한다. 원격 CI 상태는 반드시 대상 commit SHA의 Actions 결과로 확인한다. 실제 OIDC/IAM 설정과 AWS 배포는 별도 승인 후 진행한다. 자세한 절차와 제한은 [CI/CD·모니터링 가이드](docs/deployment/cicd-monitoring.md)를 참고한다.
 
 ECR 게시와 AWS 배포는 일반 push/PR에서 실행되지 않는다. `HelpDesk release publish`와 `HelpDesk approved deployment`를 각각 수동 실행하며, 배포는 이전 게시 run의 digest manifest를 사용한다. 자세한 설정과 미검증 전제는 [`docs/deployment/cicd-monitoring.md`](docs/deployment/cicd-monitoring.md)를 참고한다.
 

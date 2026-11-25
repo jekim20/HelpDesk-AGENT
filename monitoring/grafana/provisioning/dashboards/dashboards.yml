@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: HelpDesk
+    orgId: 1
+    folder: HelpDesk
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /etc/grafana/provisioning/dashboards

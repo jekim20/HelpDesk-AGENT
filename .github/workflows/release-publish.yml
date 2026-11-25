@@ -1,0 +1,143 @@
+name: HelpDesk release publish
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: helpdesk-release-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify-ci:
+    name: Require CI success for this exact commit
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm successful CI run for current SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          runs=$(gh run list --workflow ci.yml --branch main --commit "$GITHUB_SHA" --json headSha,conclusion)
+          success=$(jq --arg sha "$GITHUB_SHA" '[.[] | select(.headSha == $sha and .conclusion == "success")] | length' <<<"$runs")
+          test "$success" -gt 0 || { echo "No successful CI run for $GITHUB_SHA" >&2; exit 1; }
+
+  publish:
+    name: Build once and publish ARM64 image digests
+    needs: verify-ci
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ap-southeast-2
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      BACKEND_REPOSITORY: ${{ vars.ECR_BACKEND_REPOSITORY }}
+      FRONTEND_REPOSITORY: ${{ vars.ECR_FRONTEND_REPOSITORY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Create exact filtered source snapshot
+        id: source
+        run: |
+          set -Eeuo pipefail
+          test -n "$AWS_ACCOUNT_ID"
+          [[ "$BACKEND_REPOSITORY" == "$AWS_ACCOUNT_ID.dkr.ecr.ap-southeast-2.amazonaws.com/helpdesk-backend" ]]
+          [[ "$FRONTEND_REPOSITORY" == "$AWS_ACCOUNT_ID.dkr.ecr.ap-southeast-2.amazonaws.com/helpdesk-frontend" ]]
+          [[ "${{ github.ref }}" == "refs/heads/main" ]]
+          snapshot="$RUNNER_TEMP/helpdesk-source-${GITHUB_SHA}.tar.gz"
+          python3 deploy/aws/scripts/create-build-snapshot.py --output "$snapshot"
+          python3 - "$snapshot" <<'PY'
+          import json, pathlib, sys, tarfile
+          with tarfile.open(sys.argv[1], "r:gz") as archive:
+              manifest = json.load(archive.extractfile("source-manifest.json"))
+          if manifest["gitCommit"] != "${{ github.sha }}" or manifest["worktreeStatus"]:
+              raise SystemExit("snapshot must match the clean checked-out commit")
+          print(f"Snapshot files: {len(manifest['files'])}; commit: {manifest['gitCommit']}")
+          PY
+          snapshot_sha=$(sha256sum "$snapshot" | awk '{print $1}')
+          context="$RUNNER_TEMP/helpdesk-build-context"
+          mkdir -p "$context"
+          tar -xzf "$snapshot" -C "$context"
+          printf 'snapshot=%s\ncontext=%s\nsha=%s\n' "$snapshot" "$context" "$snapshot_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Compute installed operations bundle hash
+        id: operations
+        run: echo "sha=$(python3 deploy/aws/scripts/ops-bundle-hash.py --root .)" >> "$GITHUB_OUTPUT"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ECR_PUBLISH_ROLE_ARN }}
+          aws-region: ap-southeast-2
+          role-session-name: helpdesk-ecr-publish-${{ github.run_id }}
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Define immutable release tag
+        id: release
+        run: echo "tag=release-${GITHUB_SHA}-${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and publish backend once
+        id: backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ steps.source.outputs.context }}
+          file: ${{ steps.source.outputs.context }}/Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: ${{ env.BACKEND_REPOSITORY }}:${{ steps.release.outputs.tag }}
+
+      - name: Build and publish frontend once
+        id: frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ steps.source.outputs.context }}
+          file: ${{ steps.source.outputs.context }}/Dockerfile.frontend
+          platforms: linux/arm64
+          push: true
+          tags: ${{ env.FRONTEND_REPOSITORY }}:${{ steps.release.outputs.tag }}
+
+      - name: Create immutable digest release manifest
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          SOURCE_SNAPSHOT_SHA256: ${{ steps.source.outputs.sha }}
+          OPS_BUNDLE_SHA256: ${{ steps.operations.outputs.sha }}
+          BACKEND_DIGEST: ${{ steps.backend.outputs.digest }}
+          FRONTEND_DIGEST: ${{ steps.frontend.outputs.digest }}
+          POSTGRES_IMAGE: ${{ vars.HELPDESK_POSTGRES_IMAGE }}
+        run: |
+          set -Eeuo pipefail
+          [[ "$BACKEND_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          [[ "$FRONTEND_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          [[ "$POSTGRES_IMAGE" =~ ^[a-z0-9][a-z0-9._:/-]*(:[A-Za-z0-9_.-]+)?@sha256:[a-f0-9]{64}$ ]]
+          jq -n \
+            --arg gitCommit "$GITHUB_SHA" \
+            --arg sourceSnapshotSha256 "$SOURCE_SNAPSHOT_SHA256" \
+            --arg opsBundleSha256 "$OPS_BUNDLE_SHA256" \
+            --arg releaseTag "$RELEASE_TAG" \
+            --arg backendImage "$BACKEND_REPOSITORY@$BACKEND_DIGEST" \
+            --arg frontendImage "$FRONTEND_REPOSITORY@$FRONTEND_DIGEST" \
+            --arg postgresImage "$POSTGRES_IMAGE" \
+            '{schemaVersion:1, region:"ap-southeast-2", gitCommit:$gitCommit, sourceSnapshotSha256:$sourceSnapshotSha256, opsBundleSha256:$opsBundleSha256, releaseTag:$releaseTag, images:{backend:$backendImage,frontend:$frontendImage,postgres:$postgresImage}}' \
+            > release-manifest.json
+          cat release-manifest.json >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: helpdesk-release-${{ github.run_id }}
+          path: |
+            release-manifest.json
+            ${{ steps.source.outputs.snapshot }}
+          if-no-files-found: error
+          retention-days: 90

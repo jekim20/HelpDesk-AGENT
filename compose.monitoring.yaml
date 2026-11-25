@@ -1,0 +1,81 @@
+services:
+  app:
+    environment:
+      SPRING_PROFILES_INCLUDE: monitoring
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent --show-error --max-time 2 http://127.0.0.1:8081/actuator/health/readiness || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 2
+      start_period: 60s
+
+  prometheus:
+    image: prom/prometheus:v3.7.3
+    profiles: [monitoring]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --web.enable-lifecycle
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+    depends_on:
+      - alertmanager
+    mem_limit: 256m
+    cpus: 0.5
+    restart: unless-stopped
+    networks: [app_net]
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    profiles: [monitoring]
+    command: ["--config.file=/etc/alertmanager/alertmanager.yml", "--storage.path=/alertmanager"]
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    mem_limit: 128m
+    cpus: 0.25
+    restart: unless-stopped
+    networks: [app_net]
+
+  alert-sink:
+    build:
+      context: ./e2e/monitoring
+    profiles: [monitoring]
+    environment:
+      ALERT_SINK_LOG: /tmp/alert-events.jsonl
+    ports:
+      - "127.0.0.1:${ALERT_SINK_PORT:-8082}:8082"
+    mem_limit: 64m
+    cpus: 0.25
+    read_only: true
+    tmpfs:
+      - /tmp:rw,nosuid,size=4m
+    restart: unless-stopped
+    networks: [app_net]
+
+  grafana:
+    image: grafana/grafana:12.2.0
+    profiles: [monitoring]
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in the private monitoring env file}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
+    depends_on: [prometheus]
+    mem_limit: 256m
+    cpus: 0.5
+    restart: unless-stopped
+    networks: [app_net]
+
+volumes:
+  prometheus_data:
+  grafana_data:

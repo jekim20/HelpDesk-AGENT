@@ -6,8 +6,9 @@
 
 | 빠른 확인 | 검증 결과 |
 | --- | --- |
-| Java | 132개 중 129 통과·3 스킵·실패 0 |
-| Python evaluator | 33개 통과(마지막 검증 기준) |
+| Java | 2026-11-25 실행: 169개 중 162 통과·7 스킵·실패 0. PostgreSQL 통합 테스트 10/10 실제 실행 |
+| Python evaluator | 33/33 통과(2026-11-25 로컬) |
+| 브라우저 E2E | 10/10 통과(2026-11-25, deterministic mock, 외부 LLM 호출 없음) |
 | Docker Live Agent 평가 | 15/15 시나리오·17/17 턴. Tool 선택·인자·실행 각각 6/6 |
 | 실행 범위 | 로컬 Docker 데모. 계정·권한 샘플·Chat Memory·Vector Store는 개발용이며 일부 인메모리 |
 
@@ -69,7 +70,7 @@ flowchart LR
 
 Docker Compose는 Spring Boot와 PostgreSQL만 실행한다. React/Vite와 Python 평가기는 별도 프로세스다. Tool Trace는 서버가 요청 안에서 실행된 Tool을 기록해 API 응답에 담고, Python 평가기는 그 응답과 시나리오를 비교해 결과 파일을 만든다. 평가기는 Tool을 실행하지 않는다.
 
-`/api/ingest`는 정책 문서를 임베딩해 인메모리 VectorStore에 넣는다. `QuestionAnswerAdvisor`가 검색 결과를 모델 문맥에 제공한다. 응답의 `sources`는 답변 후 별도 유사도 검색에서 얻은 파일명이므로, 답변 문장마다 근거가 있다는 증거는 아니다. 상세 구현 흐름은 [기술 회고](docs/portfolio/technical-retrospective.md)를 참고한다.
+`/api/ingest`는 정책 문서를 임베딩해 인메모리 VectorStore에 넣는다. `QuestionAnswerAdvisor`가 검색 결과를 모델 문맥에 제공하며, `sources`에는 Advisor가 실제 검색한 문서 metadata를 재사용한다. 출처 파일명은 해당 문서가 검색됐다는 증거이지, 답변의 모든 문장이 근거 문서에 의해 뒷받침된다는 증거는 아니다. 상세 구현 흐름은 [기술 회고](docs/portfolio/technical-retrospective.md)를 참고한다.
 
 ## 핵심 기능과 설계 판단
 
@@ -174,7 +175,11 @@ cd frontend && npm install && npm run build
 
 ## CI
 
-GitHub Actions는 `main` push와 `main` 대상 pull request에서 Java 21 테스트, Python evaluator 단위 테스트, Gradle build를 실행한다. 프런트엔드 production build와 Docker 런타임 검증은 이 CI workflow에 포함되지 않는다.
+GitHub Actions는 `main` push와 `main` 대상 pull request에서 Java 21 테스트(격리 PostgreSQL 통합 테스트 10개 실행 필수), Python evaluator, Gradle `bootJar`, 프런트엔드 production build, AWS 배포 실패 주입, ARM64 backend/frontend 이미지 빌드 검증, Playwright E2E를 실행한다. E2E의 브라우저 기반 RAG 회귀는 포함하지만 k6 부하 profile은 PR마다 실행하지 않는다. 테스트 결과와 JUnit/E2E 증거는 workflow artifact로 14일 보존한다.
+
+ECR 게시와 AWS 배포는 별도 수동 workflow다. 게시 workflow는 해당 commit의 CI 성공을 확인하고 ARM64 이미지를 한 번 빌드해 digest manifest를 남긴다. 배포 workflow는 게시 run ID와 production 승인 절차를 사용하며 SSM으로 기존 배포 스크립트를 호출한다. 이 로컬 변경은 아직 원격 GitHub Actions에서 실행되지 않았고 OIDC/IAM 설정이나 AWS 배포도 수행하지 않았다. 자세한 절차와 제한은 [CI/CD·모니터링 가이드](docs/deployment/cicd-monitoring.md)를 참고한다.
+
+ECR 게시와 AWS 배포는 일반 push/PR에서 실행되지 않는다. `HelpDesk release publish`와 `HelpDesk approved deployment`를 각각 수동 실행하며, 배포는 이전 게시 run의 digest manifest를 사용한다. 자세한 설정과 미검증 전제는 [`docs/deployment/cicd-monitoring.md`](docs/deployment/cicd-monitoring.md)를 참고한다.
 
 ## RAG Retrieval Evaluation
 
@@ -243,3 +248,7 @@ python3 -m unittest scripts/test_evaluate_agent.py
 ## 향후 개선 방향
 
 이후 우선 과제는 모델 교체 전 호환성 검증, 실제 권한 시스템 연동, 운영 사용자 계정·세션 수명주기, 인메모리 Memory·VectorStore의 보존 정책, DB 백업·복구와 운영 관측이다. 기능을 더하기 전에 기존 평가의 재현성 및 비용·지연 기록을 유지한다.
+
+## 정량 성과 검증 (2026-11-23)
+
+[실측 보고서 및 원본 JSON/CSV](evaluation/quantitative/README.md)에 비교 조건·반복 수·평균/중앙값/P95·한계를 기록했다. 외부 API 없이 기존 Tool 6개 턴을 100회 반복해 선택·인자·실행 결과 각각 600/600을 확인했다. 이전 Git 알고리즘을 재구성한 인메모리 비교에서 동일 키 24요청×30회의 중복이 순차/동시 각 모드에서 690→0건으로 줄었다. Privacy 입력 24개에서는 미탐 2개와 정상 오탐 2개가 발견됐다. 이 수치는 LLM 선택 정확도·운영 DB 성능·사람의 업무시간 단축률을 뜻하지 않는다.

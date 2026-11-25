@@ -1,0 +1,27 @@
+groups:
+  - name: helpdesk-service-health
+    rules:
+      - alert: HelpDeskCoreReadinessDown
+        expr: helpdesk_core_readiness == 0
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: HelpDesk core readiness is down
+          description: The core readiness group, including PostgreSQL, is not UP.
+      - alert: HelpDeskRagUnavailable
+        expr: helpdesk_rag_readiness{state="unavailable"} == 1
+        for: 10s
+        labels:
+          severity: warning
+        annotations:
+          summary: HelpDesk AI/RAG is unavailable
+          description: Core non-AI service readiness is independent of this AI/RAG failure.
+      - alert: HelpDeskMetricsScrapeFailed
+        expr: up{job="helpdesk"} == 0
+        for: 10s
+        labels:
+          severity: critical
+        annotations:
+          summary: HelpDesk metrics scrape failed
+          description: The internal application metrics endpoint could not be scraped.

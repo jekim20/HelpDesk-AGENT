@@ -1,0 +1,26 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {"datasource": {"type": "prometheus", "uid": "helpdesk-prometheus"}, "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []}, "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0}, "id": 1, "targets": [{"expr": "sum(rate(http_server_requests_seconds_count[5m]))", "refId": "A"}], "title": "HTTP requests / second", "type": "timeseries"},
+    {"datasource": {"type": "prometheus", "uid": "helpdesk-prometheus"}, "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}, "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0}, "id": 2, "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket[5m])))", "refId": "A"}], "title": "HTTP p95 latency", "type": "timeseries"},
+    {"datasource": {"type": "prometheus", "uid": "helpdesk-prometheus"}, "fieldConfig": {"defaults": {"unit": "percentunit", "min": 0, "max": 1}, "overrides": []}, "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0}, "id": 3, "targets": [{"expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count[5m])), 1)", "refId": "A"}], "title": "HTTP 5xx ratio", "type": "timeseries"},
+    {"datasource": {"type": "prometheus", "uid": "helpdesk-prometheus"}, "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}, "gridPos": {"h": 8, "w": 6, "x": 0, "y": 8}, "id": 4, "targets": [{"expr": "helpdesk_core_readiness", "refId": "A"}], "title": "Core readiness (DB included)", "type": "stat"},
+    {"datasource": {"type": "prometheus", "uid": "helpdesk-prometheus"}, "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}, "gridPos": {"h": 8, "w": 6, "x": 6, "y": 8}, "id": 5, "targets": [{"expr": "helpdesk_rag_readiness", "legendFormat": "{{state}}", "refId": "A"}], "title": "AI/RAG readiness state", "type": "timeseries"},
+    {"datasource": {"type": "prometheus", "uid": "helpdesk-prometheus"}, "fieldConfig": {"defaults": {"unit": "s"}, "overrides": []}, "gridPos": {"h": 8, "w": 6, "x": 12, "y": 8}, "id": 6, "targets": [{"expr": "sum by (tool,result) (rate(ai_tool_calls_total[5m]))", "legendFormat": "{{tool}} {{result}}", "refId": "A"}], "title": "Tool calls by outcome", "type": "timeseries"},
+    {"datasource": {"type": "prometheus", "uid": "helpdesk-prometheus"}, "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}, "gridPos": {"h": 8, "w": 6, "x": 18, "y": 8}, "id": 7, "targets": [{"expr": "sum by (type) (increase(ai_tokens_total[1h]))", "legendFormat": "{{type}}", "refId": "A"}], "title": "AI token counts (1h)", "type": "timeseries"},
+    {"datasource": {"type": "prometheus", "uid": "helpdesk-prometheus"}, "fieldConfig": {"defaults": {"unit": "bytes"}, "overrides": []}, "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}, "id": 8, "targets": [{"expr": "sum by (area) (jvm_memory_used_bytes{area=\"heap\"})", "legendFormat": "{{area}}", "refId": "A"}], "title": "JVM heap memory", "type": "timeseries"},
+    {"datasource": {"type": "prometheus", "uid": "helpdesk-prometheus"}, "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []}, "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}, "id": 9, "targets": [{"expr": "hikaricp_connections_active", "refId": "A"}], "title": "PostgreSQL pool active connections", "type": "timeseries"}
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["helpdesk", "operations"],
+  "templating": {"list": []},
+  "time": {"from": "now-1h", "to": "now"},
+  "title": "HelpDesk Operations",
+  "uid": "helpdesk-operations",
+  "version": 1
+}

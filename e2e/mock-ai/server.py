@@ -138,7 +138,7 @@ class Handler(BaseHTTPRequestHandler):
 
         if self.path == "/__test__/mode":
             mode = body.get("mode")
-            if mode not in ("success", "fail"):
+            if mode not in ("success", "fail", "embedding-auth", "embedding-timeout"):
                 self.reply(400, {"error": {"message": "unsupported mode", "type": "invalid_request_error"}})
                 return
             with LOCK:
@@ -160,6 +160,12 @@ class Handler(BaseHTTPRequestHandler):
                 inputs = [""]
             with LOCK:
                 STATE["embedding_requests"] += 1
+                mode = STATE["mode"]
+            if mode == "embedding-auth":
+                self.reply(401, {"error": {"message": "mock-provider-body-secret-must-not-leak", "type": "invalid_api_key"}})
+                return
+            if mode == "embedding-timeout":
+                time.sleep(3)
             vectors = [embedding_for(str(value)) for value in inputs]
             self.reply(200, {
                 "object": "list",
@@ -179,12 +185,14 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             messages = body.get("messages", [])
-            prompt = " ".join(str(message.get("content", "")) for message in messages
-                               if isinstance(message, dict))
+            user_prompt = next((str(message.get("content", "")) for message in reversed(messages)
+                                if isinstance(message, dict) and message.get("role") == "user"), "")
             content = (
                 "테스트 AI 응답: VPN 신규 권한 신청은 HelpDesk 티켓으로 접수하며, "
                 "팀장 승인과 보안 검토를 거쳐 일반적으로 2영업일 이내 처리됩니다."
             )
+            if "PENDING 상태라는 정책 용어의 뜻을 설명해줘." in user_prompt:
+                content = "정책 설명에 PENDING이라는 상태 용어가 포함될 수 있지만, 이 질문으로 티켓은 생성되지 않았습니다."
             self.reply(200, {
                 "id": "chatcmpl-e2e-deterministic",
                 "object": "chat.completion",

@@ -1,0 +1,182 @@
+name: HelpDesk approved deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_run_id:
+        description: Successful HelpDesk release-publish workflow run ID
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: helpdesk-production-deploy-ap-southeast-2
+  cancel-in-progress: false
+
+jobs:
+  verify-release:
+    name: Inspect published release manifest
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      publish_sha: ${{ steps.publish_run.outputs.publish_sha }}
+      backend_image: ${{ steps.manifest.outputs.backend_image }}
+      frontend_image: ${{ steps.manifest.outputs.frontend_image }}
+      postgres_image: ${{ steps.manifest.outputs.postgres_image }}
+      ops_hash: ${{ steps.manifest.outputs.ops_hash }}
+      commit: ${{ steps.manifest.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify source publish workflow run
+        id: publish_run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLISH_RUN_ID: ${{ inputs.publish_run_id }}
+        run: |
+          set -Eeuo pipefail
+          [[ "$PUBLISH_RUN_ID" =~ ^[0-9]{1,20}$ ]] || { echo "publish_run_id must be a numeric workflow run ID" >&2; exit 1; }
+          run=$(gh run view "$PUBLISH_RUN_ID" --json conclusion,headBranch,headSha,workflowName,event)
+          jq -e '.conclusion == "success" and .headBranch == "main" and .workflowName == "HelpDesk release publish" and .event == "workflow_dispatch"' <<<"$run" >/dev/null
+          publish_sha=$(jq -r .headSha <<<"$run")
+          [[ "$publish_sha" =~ ^[0-9a-f]{40}$ ]]
+          echo "publish_sha=$publish_sha" >> "$GITHUB_OUTPUT"
+          echo "Verified successful manual publish run for main."
+      - uses: actions/download-artifact@v4
+        with:
+          name: helpdesk-release-${{ inputs.publish_run_id }}
+          run-id: ${{ inputs.publish_run_id }}
+          repository: ${{ github.repository }}
+          github-token: ${{ github.token }}
+      - name: Validate and summarize exact digests
+        id: manifest
+        env:
+          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+          EXPECTED_POSTGRES_IMAGE: ${{ vars.HELPDESK_POSTGRES_IMAGE }}
+          PUBLISH_SHA: ${{ steps.publish_run.outputs.publish_sha }}
+          PUBLISH_RUN_ID: ${{ inputs.publish_run_id }}
+        run: |
+          set -Eeuo pipefail
+          jq -e --arg account "$AWS_ACCOUNT_ID" --arg pg "$EXPECTED_POSTGRES_IMAGE" --arg sha "$PUBLISH_SHA" --arg runId "$PUBLISH_RUN_ID" '
+            .schemaVersion == 1 and .region == "ap-southeast-2" and
+            (.gitCommit | test("^[0-9a-f]{40}$")) and
+            .gitCommit == $sha and
+            .releaseTag == ("release-" + $sha + "-" + $runId) and
+            (.sourceSnapshotSha256 | test("^[0-9a-f]{64}$")) and
+            (.opsBundleSha256 | test("^[0-9a-f]{64}$")) and
+            (.images.backend | startswith($account + ".dkr.ecr.ap-southeast-2.amazonaws.com/helpdesk-backend@sha256:")) and
+            (.images.backend | test("@sha256:[a-f0-9]{64}$")) and
+            (.images.frontend | startswith($account + ".dkr.ecr.ap-southeast-2.amazonaws.com/helpdesk-frontend@sha256:")) and
+            (.images.frontend | test("@sha256:[a-f0-9]{64}$")) and
+            .images.postgres == $pg
+          ' release-manifest.json >/dev/null
+          python3 - <<'PY'
+          import hashlib, json, pathlib, tarfile
+          manifest = json.loads(pathlib.Path("release-manifest.json").read_text())
+          snapshots = list(pathlib.Path(".").glob("helpdesk-source-*.tar.gz"))
+          if len(snapshots) != 1:
+              raise SystemExit("Expected exactly one source snapshot in the publish artifact")
+          digest = hashlib.sha256(snapshots[0].read_bytes()).hexdigest()
+          if digest != manifest["sourceSnapshotSha256"]:
+              raise SystemExit("Source snapshot SHA-256 does not match the release manifest")
+          with tarfile.open(snapshots[0], "r:gz") as archive:
+              source = json.load(archive.extractfile("source-manifest.json"))
+          if source["gitCommit"] != manifest["gitCommit"] or source["worktreeStatus"]:
+              raise SystemExit("Source snapshot commit/worktree does not match the release manifest")
+          print("Source snapshot archive hash and embedded commit verified.")
+          PY
+          backend=$(jq -r .images.backend release-manifest.json)
+          frontend=$(jq -r .images.frontend release-manifest.json)
+          postgres=$(jq -r .images.postgres release-manifest.json)
+          ops_hash=$(jq -r .opsBundleSha256 release-manifest.json)
+          commit=$(jq -r .gitCommit release-manifest.json)
+          [[ "$backend" =~ @sha256:[a-f0-9]{64}$ && "$frontend" =~ @sha256:[a-f0-9]{64}$ && "$postgres" =~ @sha256:[a-f0-9]{64}$ ]]
+          printf 'backend_image=%s\nfrontend_image=%s\npostgres_image=%s\nops_hash=%s\ncommit=%s\n' \
+            "$backend" "$frontend" "$postgres" "$ops_hash" "$commit" >> "$GITHUB_OUTPUT"
+          {
+            echo '### Release awaiting deployment approval'
+            echo
+            echo "- Commit: \`$commit\`"
+            echo "- Backend digest: \`$backend\`"
+            echo "- Frontend digest: \`$frontend\`"
+            echo "- PostgreSQL remains pinned: \`$postgres\`"
+            echo "- Operations bundle SHA-256: \`$ops_hash\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: SSM deployment after manual approval
+    needs: verify-release
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ap-southeast-2
+      AWS_INSTANCE_ID: ${{ vars.AWS_INSTANCE_ID }}
+      EXPECTED_OPS_BUNDLE_SHA256: ${{ needs.verify-release.outputs.ops_hash }}
+      BACKEND_IMAGE: ${{ needs.verify-release.outputs.backend_image }}
+      FRONTEND_IMAGE: ${{ needs.verify-release.outputs.frontend_image }}
+      POSTGRES_IMAGE: ${{ needs.verify-release.outputs.postgres_image }}
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-southeast-2
+          role-session-name: helpdesk-ssm-deploy-${{ github.run_id }}
+
+      - name: Verify target and installed operations bundle
+        run: |
+          set -Eeuo pipefail
+          [[ "$AWS_INSTANCE_ID" =~ ^i-[0-9a-f]+$ ]]
+          [[ "$BACKEND_IMAGE" =~ ^[0-9]+\.dkr\.ecr\.ap-southeast-2\.amazonaws\.com/helpdesk-backend@sha256:[a-f0-9]{64}$ ]]
+          [[ "$FRONTEND_IMAGE" =~ ^[0-9]+\.dkr\.ecr\.ap-southeast-2\.amazonaws\.com/helpdesk-frontend@sha256:[a-f0-9]{64}$ ]]
+          [[ "$POSTGRES_IMAGE" =~ ^[a-z0-9][a-z0-9._:/-]*(:[A-Za-z0-9_.-]+)?@sha256:[a-f0-9]{64}$ ]]
+          [[ "$EXPECTED_OPS_BUNDLE_SHA256" =~ ^[a-f0-9]{64}$ ]]
+
+      - name: Deploy exact published digests through SSM
+        env:
+          SOURCE_COMMIT: ${{ needs.verify-release.outputs.commit }}
+        run: |
+          set -Eeuo pipefail
+          remote_script=$(cat <<REMOTE
+          set -Eeuo pipefail
+          cd /opt/helpdesk
+          actual_ops_hash=\$(python3 deploy/aws/scripts/ops-bundle-hash.py --root /opt/helpdesk)
+          test "\$actual_ops_hash" = "$EXPECTED_OPS_BUNDLE_SHA256"
+          test -f /etc/helpdesk/aws-deploy.env
+          grep -qx 'AWS_REGION=ap-southeast-2' /etc/helpdesk/aws-deploy.env
+          app='$BACKEND_IMAGE'
+          frontend='$FRONTEND_IMAGE'
+          postgres='$POSTGRES_IMAGE'
+          release_output=\$(sudo -n /opt/helpdesk/deploy/aws/scripts/record-release.sh "\$app" "\$frontend" "\$postgres")
+          release_file=\$(sed -n 's/^Immutable image release recorded: //p' <<<"\$release_output")
+          test -n "\$release_file"
+          sudo -n /opt/helpdesk/deploy/aws/scripts/deploy.sh "\$release_file"
+          REMOTE
+          )
+          parameters=$(jq -cn --arg command "$remote_script" '{commands:[$command]}')
+          command_id=$(aws ssm send-command \
+            --region "$AWS_REGION" \
+            --instance-ids "$AWS_INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --timeout-seconds 1800 \
+            --parameters "$parameters" \
+            --comment "HelpDesk commit $SOURCE_COMMIT digest deployment" \
+            --query 'Command.CommandId' --output text --no-cli-pager)
+          echo "SSM command submitted: $command_id"
+          for attempt in $(seq 1 180); do
+            status=$(aws ssm get-command-invocation --region "$AWS_REGION" \
+              --command-id "$command_id" --instance-id "$AWS_INSTANCE_ID" \
+              --query Status --output text --no-cli-pager 2>/dev/null || true)
+            case "$status" in
+              Success) echo "SSM deployment completed successfully."; exit 0 ;;
+              Failed|Cancelled|TimedOut|Cancelling) echo "SSM deployment ended with status $status." >&2; exit 1 ;;
+              *) sleep 10 ;;
+            esac
+          done
+          echo "SSM deployment status polling timed out; inspect SSM command $command_id before retrying." >&2
+          exit 1

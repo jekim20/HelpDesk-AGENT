@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     name: Test and build
@@ -48,13 +52,30 @@ jobs:
         env:
           TICKET_IT_DB_URL: jdbc:postgresql://127.0.0.1:5432/helpdesk_test
           TICKET_IT_DB_USERNAME: helpdesk
-        run: ./gradlew test
+        run: ./gradlew test --no-daemon
+
+      - name: Require PostgreSQL integration tests to run
+        run: |
+          python - <<'PY'
+          import pathlib
+          import xml.etree.ElementTree as ET
+          report = pathlib.Path("build/test-results/test/TEST-com.devdesk.agent.TicketRepositoryPostgresIntegrationTest.xml")
+          if not report.exists():
+              raise SystemExit("PostgreSQL integration test report is missing")
+          suite = ET.parse(report).getroot()
+          tests = int(suite.attrib.get("tests", 0))
+          skipped = int(suite.attrib.get("skipped", 0))
+          failures = int(suite.attrib.get("failures", 0)) + int(suite.attrib.get("errors", 0))
+          print(f"PostgreSQL integration tests: tests={tests}, skipped={skipped}, failures={failures}")
+          if tests != 10 or skipped != 0 or failures != 0:
+              raise SystemExit("Expected all 10 PostgreSQL integration tests to execute and pass")
+          PY
 
       - name: Run Python evaluator tests
         run: python -m unittest scripts/test_evaluate_agent.py scripts/test_evaluate_agent_auth.py scripts/test_evaluate_prompt_injection.py
 
       - name: Verify application build
-        run: ./gradlew build
+        run: ./gradlew bootJar --no-daemon
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -78,6 +99,16 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Run AWS release failure-injection suite
+        env:
+          DOCKER_DEFAULT_PLATFORM: linux/arm64
+        run: |
+          set -o pipefail
+          docker pull --platform linux/arm64 postgres:16-alpine
+          docker pull --platform linux/arm64 postgres:17-alpine
+          mkdir -p artifacts/ci
+          python deploy/aws/tests/test-release.py | tee artifacts/ci/release-failure-injection.log
 
       - name: Validate ARM64 backend image
         uses: docker/build-push-action@v6
@@ -106,14 +137,46 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run isolated browser E2E
+        env:
+          E2E_RUN_K6: "0"
         run: npm test --prefix e2e
         timeout-minutes: 20
 
-      - name: Upload E2E evidence
+      - name: Summarize test skips and failures
+        if: always()
+        run: |
+          python - <<'PY'
+          import glob
+          import pathlib
+          import xml.etree.ElementTree as ET
+          totals = {name: 0 for name in ("tests", "skipped", "failures", "errors")}
+          skipped = []
+          for filename in glob.glob("build/test-results/test/TEST-*.xml"):
+              root = ET.parse(filename).getroot()
+              for name in totals:
+                  totals[name] += int(root.attrib.get(name, 0))
+              for case in root.iter("testcase"):
+                  if case.find("skipped") is not None:
+                      skipped.append(f"{pathlib.Path(filename).name}::{case.attrib.get('name', '')}")
+          print(f"JUnit totals: {totals}; passed={totals['tests']-totals['skipped']-totals['failures']-totals['errors']}")
+          for case in skipped:
+              print(f"SKIPPED: {case}")
+          import os
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
+              summary.write(f"\n### JUnit results\n\n- Tests: {totals['tests']}\n- Passed: {totals['tests']-totals['skipped']-totals['failures']-totals['errors']}\n- Skipped: {totals['skipped']}\n- Failures: {totals['failures']}\n- Errors: {totals['errors']}\n")
+              if skipped:
+                  summary.write("\nSkipped tests:\n" + "\n".join(f"- `{case}`" for case in skipped) + "\n")
+          PY
+
+      - name: Upload test and E2E evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: helpdesk-e2e-${{ github.run_id }}
-          path: artifacts/e2e/runs/
-          if-no-files-found: ignore
+          name: helpdesk-ci-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            build/test-results/test/
+            build/reports/tests/test/
+            artifacts/e2e/runs/
+            artifacts/ci/release-failure-injection.log
+          if-no-files-found: warn
           retention-days: 14

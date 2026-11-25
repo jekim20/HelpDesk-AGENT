@@ -1,0 +1,12 @@
+route:
+  receiver: local-test-sink
+  group_by: [alertname]
+  group_wait: 0s
+  group_interval: 1s
+  repeat_interval: 1h
+
+receivers:
+  - name: local-test-sink
+    webhook_configs:
+      - url: http://alert-sink:8082/alerts
+        send_resolved: true

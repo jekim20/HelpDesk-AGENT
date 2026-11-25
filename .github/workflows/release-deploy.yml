@@ -50,6 +50,7 @@ jobs:
           run-id: ${{ inputs.publish_run_id }}
           repository: ${{ github.repository }}
           github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/helpdesk-release
       - name: Validate and summarize exact digests
         id: manifest
         env:
@@ -59,6 +60,8 @@ jobs:
           PUBLISH_RUN_ID: ${{ inputs.publish_run_id }}
         run: |
           set -Eeuo pipefail
+          manifest_file="$RUNNER_TEMP/helpdesk-release/HelpDesk-AGENT/HelpDesk-AGENT/release-manifest.json"
+          test -f "$manifest_file" && test ! -L "$manifest_file" || { echo "Expected release manifest is missing or unsafe" >&2; exit 1; }
           jq -e --arg account "$AWS_ACCOUNT_ID" --arg pg "$EXPECTED_POSTGRES_IMAGE" --arg sha "$PUBLISH_SHA" --arg runId "$PUBLISH_RUN_ID" '
             .schemaVersion == 1 and .region == "ap-southeast-2" and
             (.gitCommit | test("^[0-9a-f]{40}$")) and
@@ -71,27 +74,31 @@ jobs:
             (.images.frontend | startswith($account + ".dkr.ecr.ap-southeast-2.amazonaws.com/helpdesk-frontend@sha256:")) and
             (.images.frontend | test("@sha256:[a-f0-9]{64}$")) and
             .images.postgres == $pg
-          ' release-manifest.json >/dev/null
+          ' "$manifest_file" >/dev/null
           python3 - <<'PY'
-          import hashlib, json, pathlib, tarfile
-          manifest = json.loads(pathlib.Path("release-manifest.json").read_text())
-          snapshots = list(pathlib.Path(".").glob("helpdesk-source-*.tar.gz"))
-          if len(snapshots) != 1:
-              raise SystemExit("Expected exactly one source snapshot in the publish artifact")
-          digest = hashlib.sha256(snapshots[0].read_bytes()).hexdigest()
+          import hashlib, json, os, pathlib, tarfile
+          root = pathlib.Path(os.environ["RUNNER_TEMP"]) / "helpdesk-release"
+          manifest_file = root / "HelpDesk-AGENT/HelpDesk-AGENT/release-manifest.json"
+          snapshot = root / "_temp" / f"helpdesk-source-{os.environ['PUBLISH_SHA']}.tar.gz"
+          if list(root.rglob("release-manifest.json")) != [manifest_file] or manifest_file.is_symlink():
+              raise SystemExit("Expected exactly one release manifest at the approved artifact path")
+          if list(root.rglob("helpdesk-source-*.tar.gz")) != [snapshot] or snapshot.is_symlink():
+              raise SystemExit("Expected exactly one source snapshot at the approved artifact path")
+          manifest = json.loads(manifest_file.read_text())
+          digest = hashlib.sha256(snapshot.read_bytes()).hexdigest()
           if digest != manifest["sourceSnapshotSha256"]:
               raise SystemExit("Source snapshot SHA-256 does not match the release manifest")
-          with tarfile.open(snapshots[0], "r:gz") as archive:
+          with tarfile.open(snapshot, "r:gz") as archive:
               source = json.load(archive.extractfile("source-manifest.json"))
           if source["gitCommit"] != manifest["gitCommit"] or source["worktreeStatus"]:
               raise SystemExit("Source snapshot commit/worktree does not match the release manifest")
           print("Source snapshot archive hash and embedded commit verified.")
           PY
-          backend=$(jq -r .images.backend release-manifest.json)
-          frontend=$(jq -r .images.frontend release-manifest.json)
-          postgres=$(jq -r .images.postgres release-manifest.json)
-          ops_hash=$(jq -r .opsBundleSha256 release-manifest.json)
-          commit=$(jq -r .gitCommit release-manifest.json)
+          backend=$(jq -r .images.backend "$manifest_file")
+          frontend=$(jq -r .images.frontend "$manifest_file")
+          postgres=$(jq -r .images.postgres "$manifest_file")
+          ops_hash=$(jq -r .opsBundleSha256 "$manifest_file")
+          commit=$(jq -r .gitCommit "$manifest_file")
           [[ "$backend" =~ @sha256:[a-f0-9]{64}$ && "$frontend" =~ @sha256:[a-f0-9]{64}$ && "$postgres" =~ @sha256:[a-f0-9]{64}$ ]]
           printf 'backend_image=%s\nfrontend_image=%s\npostgres_image=%s\nops_hash=%s\ncommit=%s\n' \
             "$backend" "$frontend" "$postgres" "$ops_hash" "$commit" >> "$GITHUB_OUTPUT"

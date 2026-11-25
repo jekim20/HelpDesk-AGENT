@@ -131,12 +131,16 @@ snapshot_manifests() {
   fi
 }
 
+postgres_data_initialized() {
+  compose exec -T postgres sh -c 'test -f "$PGDATA/PG_VERSION"' >/dev/null 2>&1
+}
+
 check_original_release() {
   local mode=$1 candidate_postgres=$HELPDESK_POSTGRES_IMAGE
   load_images "$stage_dir/original.env"
   [[ "$HELPDESK_POSTGRES_IMAGE" == "$candidate_postgres" ]] ||
     fail "PostgreSQL image changes require a separate planned database migration"
-  [[ -f "$HELPDESK_PGDATA_PATH/PG_VERSION" ]] ||
+  postgres_data_initialized ||
     fail "existing release is missing its initialized PostgreSQL data directory"
   validate_local_images || fail "original images must be available locally for recovery"
   if [[ "$mode" == deploy ]]; then
@@ -167,12 +171,14 @@ check_initial_postgres() {
   if [[ -n "$existing_pg" ]]; then
     # A failed first activation can leave an initialized, running database. Its
     # container reference is the pin until the first healthy release is recorded.
-    [[ -f "$HELPDESK_PGDATA_PATH/PG_VERSION" ]] ||
+    postgres_data_initialized ||
       fail "unverified PostgreSQL data state; inspect the existing container and mount"
     wait_for_postgres || fail "existing PostgreSQL is not healthy at the requested digest"
     initialize_postgres=no
   else
     local -a data_files
+    [[ -r "$HELPDESK_PGDATA_PATH" && -x "$HELPDESK_PGDATA_PATH" ]] ||
+      fail "PostgreSQL data directory cannot be inspected; refusing initialization"
     shopt -s nullglob dotglob
     data_files=("$HELPDESK_PGDATA_PATH"/*)
     shopt -u nullglob dotglob

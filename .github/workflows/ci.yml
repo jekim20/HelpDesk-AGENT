@@ -100,15 +100,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Pull ARM64 PostgreSQL fixtures and record manifest digests
+      - name: Pull PostgreSQL fixtures and record manifest digests
         id: postgres-fixtures
-        env:
-          DOCKER_DEFAULT_PLATFORM: linux/arm64
         run: |
           set -Eeuo pipefail
-          pg16_output=$(docker pull --platform linux/arm64 postgres:16-alpine 2>&1)
+          pg16_output=$(docker pull postgres:16-alpine 2>&1)
           printf '%s\n' "$pg16_output"
-          pg17_output=$(docker pull --platform linux/arm64 postgres:17-alpine 2>&1)
+          pg17_output=$(docker pull postgres:17-alpine 2>&1)
           printf '%s\n' "$pg17_output"
           pg16_digest=$(sed -nE 's/^Digest: (sha256:[a-f0-9]{64})$/\1/p' <<<"$pg16_output" | tail -n 1)
           pg17_digest=$(sed -nE 's/^Digest: (sha256:[a-f0-9]{64})$/\1/p' <<<"$pg17_output" | tail -n 1)
@@ -118,7 +116,6 @@ jobs:
 
       - name: Run AWS release failure-injection suite
         env:
-          DOCKER_DEFAULT_PLATFORM: linux/arm64
           TEST_POSTGRES_16_DIGEST: ${{ steps.postgres-fixtures.outputs.pg16_digest }}
           TEST_POSTGRES_17_DIGEST: ${{ steps.postgres-fixtures.outputs.pg17_digest }}
         run: |

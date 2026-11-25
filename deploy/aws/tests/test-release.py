@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Exercise the release scripts against a disposable local Compose project.
 
-Needs Docker Desktop or an ARM64 Docker Engine and cached postgres:16-alpine
-and postgres:17-alpine images. No registry, SSM or S3 requests are sent.
+Needs a local Docker Engine and cached postgres:16-alpine and postgres:17-alpine
+images for its native platform. No registry, SSM or S3 requests are sent.
 """
 import fcntl
 import json
@@ -101,7 +101,7 @@ def run_suite():
 
     def reference(tag, digest_env):
         arch = run([docker, "image", "inspect", "--format", "{{.Architecture}}", tag]).stdout.strip()
-        assert arch == "arm64", f"{tag} must be cached for ARM64"
+        assert arch in ("arm64", "amd64"), f"{tag} has unsupported architecture {arch!r}"
         digest = os.environ.get(digest_env, "")
         if not digest:
             repo_digests = json.loads(run([docker, "image", "inspect", "--format",
@@ -112,10 +112,11 @@ def run_suite():
             f"{tag} needs a registry manifest digest; pass it from docker pull"
         )
         assert all(char in "0123456789abcdef" for char in digest[7:]), f"invalid digest for {tag}"
-        return "docker.io/library/postgres@" + digest
+        return "docker.io/library/postgres@" + digest, arch
 
-    image_a = reference("postgres:16-alpine", "TEST_POSTGRES_16_DIGEST")
-    image_b = reference("postgres:17-alpine", "TEST_POSTGRES_17_DIGEST")
+    image_a, arch_a = reference("postgres:16-alpine", "TEST_POSTGRES_16_DIGEST")
+    image_b, arch_b = reference("postgres:17-alpine", "TEST_POSTGRES_17_DIGEST")
+    assert arch_a == arch_b, "PostgreSQL test fixtures must use the same platform"
     absent = "docker.io/library/postgres@sha256:" + "0" * 64
     with tempfile.TemporaryDirectory(prefix="helpdesk-release-", dir="/tmp") as directory:
         temp = Path(directory).resolve()

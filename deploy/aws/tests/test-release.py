@@ -5,6 +5,7 @@ Needs Docker Desktop or an ARM64 Docker Engine and cached postgres:16-alpine
 and postgres:17-alpine images. No registry, SSM or S3 requests are sent.
 """
 import fcntl
+import json
 import os
 from pathlib import Path
 import shutil
@@ -98,13 +99,23 @@ def run_suite():
         return subprocess.run(args, text=True, capture_output=True, env=kwargs.pop("env", env),
                               check=kwargs.pop("check", True), **kwargs)
 
-    def reference(tag):
-        digest, arch = run([docker, "image", "inspect", "--format",
-                            "{{index .RepoDigests 0}} {{.Architecture}}", tag]).stdout.split()
+    def reference(tag, digest_env):
+        arch = run([docker, "image", "inspect", "--format", "{{.Architecture}}", tag]).stdout.strip()
         assert arch == "arm64", f"{tag} must be cached for ARM64"
-        return "docker.io/library/" + digest
+        digest = os.environ.get(digest_env, "")
+        if not digest:
+            repo_digests = json.loads(run([docker, "image", "inspect", "--format",
+                                           "{{json .RepoDigests}}", tag]).stdout)
+            if repo_digests:
+                digest = repo_digests[0].rsplit("@", 1)[-1]
+        assert digest.startswith("sha256:") and len(digest) == 71, (
+            f"{tag} needs a registry manifest digest; pass it from docker pull"
+        )
+        assert all(char in "0123456789abcdef" for char in digest[7:]), f"invalid digest for {tag}"
+        return "docker.io/library/postgres@" + digest
 
-    image_a, image_b = reference("postgres:16-alpine"), reference("postgres:17-alpine")
+    image_a = reference("postgres:16-alpine", "TEST_POSTGRES_16_DIGEST")
+    image_b = reference("postgres:17-alpine", "TEST_POSTGRES_17_DIGEST")
     absent = "docker.io/library/postgres@sha256:" + "0" * 64
     with tempfile.TemporaryDirectory(prefix="helpdesk-release-", dir="/tmp") as directory:
         temp = Path(directory).resolve()

@@ -1,8 +1,10 @@
 package com.devdesk.agent;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.time.LocalDate;
 
 import org.slf4j.Logger;
@@ -11,7 +13,9 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.tika.TikaDocumentReader;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Service;
 
 /**
@@ -24,11 +28,78 @@ import org.springframework.stereotype.Service;
 public class IngestService {
 
     private static final Logger log = LoggerFactory.getLogger(IngestService.class);
+    private static final Set<String> REQUIRED_POLICY_SOURCES = Set.of(
+            "vpn-guide.md",
+            "database-access-policy.md",
+            "access-request-guide.md",
+            "incident-response-guide.md");
 
     private final VectorStore vectorStore;
+    private final RagIndexReadiness readiness;
 
     public IngestService(VectorStore vectorStore) {
+        this(vectorStore, new RagIndexReadiness());
+    }
+
+    @Autowired
+    public IngestService(VectorStore vectorStore, RagIndexReadiness readiness) {
         this.vectorStore = vectorStore;
+        this.readiness = readiness;
+    }
+
+    /** Rebuilds the full required classpath corpus and publishes readiness only after all files succeed. */
+    public synchronized List<IngestResult> reindexPolicyCorpus() {
+        readiness.requireConfigured();
+        Resource[] resources;
+        try {
+            resources = new PathMatchingResourcePatternResolver()
+                    .getResources("classpath:/docs/*.md");
+        } catch (Exception failure) {
+            readiness.markUnavailable(AiIntegrationException.Kind.POLICY_INDEX);
+            throw new AiIntegrationException(AiIntegrationException.Kind.POLICY_INDEX, failure);
+        }
+        return reindexPolicyDocuments(resources);
+    }
+
+    synchronized List<IngestResult> reindexPolicyDocuments(Resource[] resources) {
+        readiness.requireConfigured();
+        readiness.beginIndexing();
+        try {
+            if (resources.length == 0) {
+                throw new IllegalStateException("policy corpus is empty");
+            }
+
+            Set<String> names = new HashSet<>();
+            for (Resource resource : resources) {
+                String name = resource.getFilename();
+                if (name == null || !names.add(name)) {
+                    throw new IllegalStateException("policy corpus contains a missing or duplicate filename");
+                }
+            }
+            if (!names.containsAll(REQUIRED_POLICY_SOURCES)) {
+                throw new MissingPolicyDocumentsException();
+            }
+
+            List<IngestResult> results = java.util.Arrays.stream(resources)
+                    .sorted(java.util.Comparator.comparing(resource -> resource.getFilename()))
+                    .map(resource -> ingest(resource, "policy", "IT"))
+                    .toList();
+            if (results.size() != resources.length || results.stream().anyMatch(result -> result.chunks() < 1)) {
+                throw new IllegalStateException("policy corpus indexing was incomplete");
+            }
+            readiness.markReady();
+            return results;
+        } catch (Exception failure) {
+            AiIntegrationException.Kind kind = failure instanceof MissingPolicyDocumentsException
+                    ? AiIntegrationException.Kind.POLICY_INDEX
+                    : AiFailureClassifier.classify(failure);
+            readiness.markUnavailable(kind);
+            if (failure instanceof AiIntegrationException aiFailure) {
+                throw aiFailure;
+            }
+            throw new AiIntegrationException(kind == AiIntegrationException.Kind.PROVIDER
+                    ? AiIntegrationException.Kind.POLICY_INDEX : kind, failure);
+        }
     }
 
     public record IngestResult(String source, int chunks) {}
@@ -55,6 +126,10 @@ public class IngestService {
                 .build()
                 .apply(raw);
 
+        if (chunks.isEmpty()) {
+            throw new IllegalStateException("policy document produced no text chunks");
+        }
+
         // ③ Enrich — 인제스트 때 안 넣은 메타데이터는 나중에 넣을 수 없다
         List<Document> enriched = chunks.stream()
                 .map(chunk -> {
@@ -79,8 +154,10 @@ public class IngestService {
         try {
             vectorStore.delete("source == '" + source + "'");
         } catch (Exception e) {
-            // 인메모리 스토어 등 필터 삭제를 지원하지 않는 구현도 있다
-            log.debug("기존 청크 삭제를 건너뛴다: {}", e.getMessage());
+            // Continuing would leave stale/duplicate chunks and could report a false success.
+            throw new IllegalStateException("existing policy chunks could not be replaced", e);
         }
     }
+
+    private static final class MissingPolicyDocumentsException extends RuntimeException {}
 }

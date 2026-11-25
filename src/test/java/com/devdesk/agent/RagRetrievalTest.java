@@ -86,7 +86,6 @@ class RagRetrievalTest {
                         .chatMemoryRepository(new InMemoryChatMemoryRepository())
                         .maxMessages(20)
                         .build(),
-                vectorStore,
                 new AccessTools(new AccessRepository(), invocationTracker),
                 new TicketTools(ticketRepository, invocationTracker),
                 new ModelFallbackExecutor(),

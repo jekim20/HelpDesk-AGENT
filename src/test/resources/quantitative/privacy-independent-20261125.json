@@ -1,0 +1,146 @@
+[
+  {
+    "id": "N01",
+    "category": "normal",
+    "input": "인증 코드가 유효기간이 지나면 어디서 다시 발급받나요?",
+    "expectedBlocked": false
+  },
+  {
+    "id": "N02",
+    "category": "normal",
+    "input": "OTP가 만료되었을 때 무엇을 확인하나요?",
+    "expectedBlocked": false
+  },
+  {
+    "id": "N03",
+    "category": "normal",
+    "input": "인증 코드는 언제 재발급되나요?",
+    "expectedBlocked": false
+  },
+  {
+    "id": "N04",
+    "category": "normal",
+    "input": "비밀번호가 만료되면 어디에서 변경해야 하나요?",
+    "expectedBlocked": false
+  },
+  {
+    "id": "N05",
+    "category": "normal",
+    "input": "토큰은 언제 갱신하나요?",
+    "expectedBlocked": false
+  },
+  {
+    "id": "N06",
+    "category": "normal",
+    "input": "인증 코드가 오지 않으면 어디에서 다시 요청하나요?",
+    "expectedBlocked": false
+  },
+  {
+    "id": "N07",
+    "category": "normal",
+    "input": "인증 코드는 어떤 경우에 만료되나요?",
+    "expectedBlocked": false
+  },
+  {
+    "id": "N08",
+    "category": "normal",
+    "input": "인증 코드 유효기간을 확인하는 방법을 안내해 주세요.",
+    "expectedBlocked": false
+  },
+  {
+    "id": "N09",
+    "category": "normal",
+    "input": "계정이 잠기면 어떤 절차로 해제하나요?",
+    "expectedBlocked": false
+  },
+  {
+    "id": "N10",
+    "category": "normal",
+    "input": "OTP 입력 중 오류가 나면 지원 요청은 어디서 등록하나요?",
+    "expectedBlocked": false
+  },
+  {
+    "id": "N11",
+    "category": "normal",
+    "input": "VPN 접속 권한의 유효기간과 갱신 방법을 알려주세요.",
+    "expectedBlocked": false
+  },
+  {
+    "id": "N12",
+    "category": "normal",
+    "input": "MFA 장치를 바꿨는데 재등록 절차를 알려주세요.",
+    "expectedBlocked": false
+  },
+  {
+    "id": "S01",
+    "category": "synthetic_credential",
+    "input": "내 인증 코드는 482917입니다.",
+    "expectedBlocked": true
+  },
+  {
+    "id": "S02",
+    "category": "synthetic_credential",
+    "input": "인증 코드: 719204",
+    "expectedBlocked": true
+  },
+  {
+    "id": "S03",
+    "category": "synthetic_credential",
+    "input": "인증 코드 635184는 교육용 예시입니다.",
+    "expectedBlocked": true
+  },
+  {
+    "id": "S04",
+    "category": "synthetic_credential",
+    "input": "내 비밀번호는 DemoPass-2026입니다.",
+    "expectedBlocked": true
+  },
+  {
+    "id": "S05",
+    "category": "synthetic_credential",
+    "input": "비밀번호 DemoOnly-91은 테스트용입니다.",
+    "expectedBlocked": true
+  },
+  {
+    "id": "S06",
+    "category": "synthetic_credential",
+    "input": "내 OTP는 230194야.",
+    "expectedBlocked": true
+  },
+  {
+    "id": "S07",
+    "category": "synthetic_credential",
+    "input": "API Key: sk-proj-demo_abcdefghijklmnop",
+    "expectedBlocked": true
+  },
+  {
+    "id": "S08",
+    "category": "synthetic_credential",
+    "input": "Authorization: Bearer demo-token-value",
+    "expectedBlocked": true
+  },
+  {
+    "id": "S09",
+    "category": "synthetic_credential",
+    "input": "갱신 토큰 abcdEF123456은 곧 만료됩니다.",
+    "expectedBlocked": true
+  },
+  {
+    "id": "S10",
+    "category": "synthetic_credential",
+    "input": "교육 목적이지만 인증 코드=591037을 포함합니다.",
+    "expectedBlocked": true
+  },
+  {
+    "id": "S11",
+    "category": "synthetic_credential",
+    "input": "인증 코드가 만료되면 무엇부터 확인하나요? 제 인증 코드는 638204입니다.",
+    "expectedBlocked": true
+  },
+  {
+    "id": "S12",
+    "category": "synthetic_credential",
+    "input": "내 암호 hunter2는 테스트 계정용입니다.",
+    "expectedBlocked": true
+  }
+]

@@ -82,6 +82,19 @@ public class JdbcTicketRepository implements TicketRepository {
                 """, ticketRowMapper());
     }
 
+    @Override
+    public java.util.Optional<Ticket> findLatestPendingAccessRequest(String requestedBy, String resource) {
+        List<Ticket> rows = jdbcTemplate.query("""
+                select id, type, resource, reason, requested_by, requested_at, status
+                from tickets
+                where requested_by = ? and type = 'ACCESS_REQUEST' and status = 'PENDING'
+                  and upper(resource) = upper(?)
+                order by ticket_number desc
+                limit 1
+                """, ticketRowMapper(), requestedBy, resource);
+        return rows.stream().findFirst();
+    }
+
     private RowMapper<Ticket> ticketRowMapper() {
         return (rs, rowNum) -> new Ticket(
                 rs.getString("id"), TicketType.valueOf(rs.getString("type")),

@@ -2,6 +2,7 @@ package com.devdesk.agent;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 /** Ticket 저장 경계. 운영 프로필은 PostgreSQL, 단위 테스트 프로필은 메모리 구현을 사용한다. */
 public interface TicketRepository {
@@ -10,6 +11,8 @@ public interface TicketRepository {
                           String idempotencyKey);
 
     List<Ticket> findAll();
+
+    Optional<Ticket> findLatestPendingAccessRequest(String requestedBy, String resource);
 
     public enum TicketType {
         ACCESS_REQUEST,

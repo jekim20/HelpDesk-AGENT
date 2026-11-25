@@ -1,0 +1,10 @@
+gradle.projectsEvaluated {
+    def project = gradle.rootProject
+    def sourceFile = new File(System.getenv('PRIVACY_BASELINE_SOURCE'))
+    def javaSources = project.sourceSets.main.java
+    def currentSources = javaSources.files.findAll { it.name != sourceFile.name }
+    project.layout.buildDirectory.set(new File(System.getenv('PRIVACY_BASELINE_BUILD')))
+    project.tasks.named('compileJava').configure {
+        setSource(currentSources + [sourceFile])
+    }
+}

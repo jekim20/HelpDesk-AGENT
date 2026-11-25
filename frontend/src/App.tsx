@@ -27,6 +27,7 @@ interface ConversationEntry {
   historical?: boolean;
   response?: ChatResponse;
   error?: string;
+  errorCode?: string;
   retry?: { request: ChatRequest; key: string };
   retryable?: boolean;
 }
@@ -102,10 +103,7 @@ function restoreEntries(messages: string[], user: CurrentUser, sessionId: string
 }
 
 function hasPendingState(response: ChatResponse): boolean {
-  return (
-    response.answer.includes("PENDING") ||
-    response.toolCalls.some((call) => call.toolResult?.includes("PENDING"))
-  );
+  return Boolean(response.ticketId && response.ticketStatus === "PENDING");
 }
 
 function describeEvidence(response: ChatResponse): string {
@@ -386,7 +384,7 @@ function App() {
     try {
       const response = await sendChat(request, key);
       setEntries((current) => current.map((item) => item.id === id
-        ? { ...item, response, error: undefined, retry: undefined, retryable: false }
+        ? { ...item, response, error: undefined, errorCode: undefined, retry: undefined, retryable: false }
         : item));
       setBackendStatus("connected");
       if (hasPendingState(response) && isAdmin(currentUser)) void refreshTickets();
@@ -399,7 +397,10 @@ function App() {
         ? {
             ...item,
             error: formatApiError(error),
-            retryable: !(error instanceof DevDeskApiError && [400, 401, 403, 409].includes(error.status ?? 0)),
+            errorCode: error instanceof DevDeskApiError ? error.code : undefined,
+            retryable: error instanceof DevDeskApiError && error.code
+              ? error.retryable
+              : !(error instanceof DevDeskApiError && [400, 401, 403, 409].includes(error.status ?? 0)),
           }
         : item));
       setBackendStatus(error instanceof DevDeskApiError && error.status ? "connected" : "unavailable");
@@ -583,7 +584,9 @@ function App() {
                   <div className="message message--error" role="alert">
                     <div className="message__meta"><strong>Request error</strong></div>
                     <p>{entry.error}</p>
-                    <small>Check that the Spring Boot backend is running on port 8080.</small>
+                    {entry.errorCode === "BACKEND_UNAVAILABLE" && (
+                      <small>Could not connect to the HelpDesk service. Check the network connection and try again.</small>
+                    )}
                     {entry.retryable && entry.retry && (
                       <button className="text-button" disabled={isSending} onClick={() => retryChat(entry)} type="button">
                         Retry same request

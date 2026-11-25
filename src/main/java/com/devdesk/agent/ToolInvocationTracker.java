@@ -14,10 +14,12 @@ public class ToolInvocationTracker {
 
     private final ThreadLocal<List<ToolCallInfo>> calls = ThreadLocal.withInitial(ArrayList::new);
     private final ThreadLocal<Boolean> currentInvocationSuccess = new ThreadLocal<>();
+    private final ThreadLocal<TicketOutcome> ticketOutcome = new ThreadLocal<>();
 
     public void begin() {
         calls.set(new ArrayList<>());
         currentInvocationSuccess.remove();
+        ticketOutcome.remove();
     }
 
     void beginInvocation() {
@@ -51,10 +53,19 @@ public class ToolInvocationTracker {
         return List.copyOf(calls.get());
     }
 
+    void recordTicketOutcome(String ticketId, String status) {
+        ticketOutcome.set(new TicketOutcome(ticketId, status));
+    }
+
+    public TicketOutcome ticketOutcome() { return ticketOutcome.get(); }
+
     public void clear() {
         calls.remove();
         currentInvocationSuccess.remove();
+        ticketOutcome.remove();
     }
+
+    public record TicketOutcome(String ticketId, String status) {}
 
     public record ToolCallInfo(String toolName, Map<String, Object> toolArguments,
                                String toolResult, boolean success, long latencyMs) {

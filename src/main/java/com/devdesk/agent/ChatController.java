@@ -1,11 +1,7 @@
 package com.devdesk.agent;
 
-import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -81,9 +77,8 @@ public class ChatController {
     }
 
     @PostMapping("/ingest")
-    public List<IngestService.IngestResult> ingest() throws IOException {
-        Resource[] docs = new PathMatchingResourcePatternResolver().getResources("classpath:/docs/*.md");
-        return Arrays.stream(docs).map(doc -> ingestService.ingest(doc, "policy", "IT")).toList();
+    public List<IngestService.IngestResult> ingest() {
+        return ingestService.reindexPolicyCorpus();
     }
 
     @GetMapping("/history")

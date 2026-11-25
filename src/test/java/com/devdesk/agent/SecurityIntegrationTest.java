@@ -1,7 +1,6 @@
 package com.devdesk.agent;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -15,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.UUID;
+import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -133,6 +132,21 @@ class SecurityIntegrationTest {
     }
 
     @Test
+    void AI_설정이_없으면_RAG는_안전한_503이고_비LLM_권한조회는_계속_동작한다() throws Exception {
+        MockHttpSession user = login("user1", USER1_PASSWORD);
+
+        chat(user, "VPN 정책이 어떻게 되나요?", "offline-rag-" + UUID.randomUUID(), "user1")
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("AI_NOT_CONFIGURED"))
+                .andExpect(jsonPath("$.message").value("AI 기능이 설정되지 않았습니다. 관리자에게 문의해 주세요."))
+                .andExpect(jsonPath("$.retryable").value(false));
+
+        chat(user, "내 VPN 권한 상태 알려줘.", "offline-tool-" + UUID.randomUUID(), "user1")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.answer").value(org.hamcrest.Matchers.containsString("APPROVED")));
+    }
+
+    @Test
     void 잘못된_비밀번호는_API_401로_반환한다() throws Exception {
         mvc.perform(formLogin().user("user1").password("incorrect-password"))
                 .andExpect(status().isUnauthorized());
@@ -157,9 +171,11 @@ class SecurityIntegrationTest {
         var ticket = ticketRepository.create(
                 TicketRepository.TicketType.INCIDENT, "VPN", "security integration fixture", "user1",
                 UUID.randomUUID().toString()).ticket();
-        when(ingestService.ingest(any(Resource.class), any(), any()))
-                .thenAnswer(invocation -> new IngestService.IngestResult(
-                        ((Resource) invocation.getArgument(0)).getFilename(), 1));
+        when(ingestService.reindexPolicyCorpus()).thenReturn(List.of(
+                new IngestService.IngestResult("vpn-guide.md", 1),
+                new IngestService.IngestResult("database-access-policy.md", 1),
+                new IngestService.IngestResult("access-request-guide.md", 1),
+                new IngestService.IngestResult("incident-response-guide.md", 1)));
 
         String tickets = mvc.perform(get("/api/admin/tickets").session(admin))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
@@ -170,7 +186,7 @@ class SecurityIntegrationTest {
         mvc.perform(post("/api/ingest").session(admin).with(csrf()))
                 .andExpect(status().isOk());
 
-        verify(ingestService, org.mockito.Mockito.times(4)).ingest(any(Resource.class), any(), any());
+        verify(ingestService).reindexPolicyCorpus();
     }
 
     @Test
@@ -179,8 +195,12 @@ class SecurityIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
                         .jsonPath("$.components").doesNotExist());
+        mvc.perform(get("/actuator/health/readiness"))
+                .andExpect(status().isOk());
+        mvc.perform(get("/actuator/health/ai"))
+                .andExpect(jsonPath("$.components.ragIndex.status").value("NOT_CONFIGURED"));
         mvc.perform(get("/actuator/prometheus"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isNotFound());
     }
 
     @Test

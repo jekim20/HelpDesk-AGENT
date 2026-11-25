@@ -3,22 +3,26 @@ package com.devdesk.agent;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ToolContext;
-import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
+import org.springframework.ai.document.Document;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.devdesk.agent.ModelFallbackExecutor.ExecutionResult;
@@ -58,35 +62,50 @@ public class HelpDeskService {
     private final ChatClient primaryClient;
     private final ChatClient fallbackClient;
     private final ChatMemory memory;
-    private final VectorStore vectorStore;
     private final AccessTools accessTools;
     private final TicketTools ticketTools;
     private final ModelFallbackExecutor fallbackExecutor;
     private final ToolInvocationTracker invocationTracker;
     private final UserInputSafetyAdvisor userInputSafety;
     private final PromptInjectionGuard promptInjectionGuard;
+    private final RagIndexReadiness ragIndexReadiness;
     private final Map<String, String> conversationResources = new ConcurrentHashMap<>();
 
     public HelpDeskService(@Qualifier("devDeskPrimaryClient") ChatClient primaryClient,
             @Qualifier("devDeskFallbackClient") ChatClient fallbackClient,
             ChatMemory memory,
-            VectorStore vectorStore,
             AccessTools accessTools,
             TicketTools ticketTools,
             ModelFallbackExecutor fallbackExecutor,
             ToolInvocationTracker invocationTracker,
             UserInputSafetyAdvisor userInputSafety,
             PromptInjectionGuard promptInjectionGuard) {
+        this(primaryClient, fallbackClient, memory, accessTools, ticketTools,
+                fallbackExecutor, invocationTracker, userInputSafety, promptInjectionGuard,
+                readyForUnitTests());
+    }
+
+    @Autowired
+    public HelpDeskService(@Qualifier("devDeskPrimaryClient") ChatClient primaryClient,
+            @Qualifier("devDeskFallbackClient") ChatClient fallbackClient,
+            ChatMemory memory,
+            AccessTools accessTools,
+            TicketTools ticketTools,
+            ModelFallbackExecutor fallbackExecutor,
+            ToolInvocationTracker invocationTracker,
+            UserInputSafetyAdvisor userInputSafety,
+            PromptInjectionGuard promptInjectionGuard,
+            RagIndexReadiness ragIndexReadiness) {
         this.primaryClient = primaryClient;
         this.fallbackClient = fallbackClient;
         this.memory = memory;
-        this.vectorStore = vectorStore;
         this.accessTools = accessTools;
         this.ticketTools = ticketTools;
         this.fallbackExecutor = fallbackExecutor;
         this.invocationTracker = invocationTracker;
         this.userInputSafety = userInputSafety;
         this.promptInjectionGuard = promptInjectionGuard;
+        this.ragIndexReadiness = ragIndexReadiness;
     }
 
     public ChatResult chat(String question, String sessionId, String userId, boolean simulatePrimaryFailure) {
@@ -136,8 +155,11 @@ public class HelpDeskService {
                 String answer = ticketTools.createTicket(type, target, question,
                         toolContext(userId, IdempotencyKey.canonical(idempotencyKey)));
                 remember(conversationId, question, answer);
+                ToolInvocationTracker.TicketOutcome outcome = invocationTracker.ticketOutcome();
                 return new ChatResult(answer, sessionId, List.of(), true,
-                        invocationTracker.snapshot(), false);
+                        invocationTracker.snapshot(), false,
+                        outcome == null ? null : outcome.ticketId(),
+                        outcome == null ? null : outcome.status());
             } catch (IdempotencyConflictException conflict) {
                 throw new IdempotencyConflictException(invocationTracker.snapshot());
             } finally {
@@ -146,21 +168,38 @@ public class HelpDeskService {
         }
 
         String contextualQuestion = contextualQuestion(question, resource);
+        ragIndexReadiness.requireReady();
+        AtomicReference<List<String>> retrievedSources = new AtomicReference<>(List.of());
         invocationTracker.begin();
         try {
             Supplier<String> primary = () -> {
                 if (simulatePrimaryFailure) {
                     throw new IllegalStateException("simulated primary model failure");
                 }
-                return callModel(primaryClient, contextualQuestion, conversationId, userId);
+                return callModel(primaryClient, contextualQuestion, conversationId, userId, retrievedSources);
             };
-            Supplier<String> fallback = () -> callModel(fallbackClient, contextualQuestion, conversationId, userId);
-            ExecutionResult result = fallbackExecutor.execute(primary, fallback);
-            return new ChatResult(result.answer(), sessionId, findSources(contextualQuestion),
-                    invocationTracker.wasInvoked(), invocationTracker.snapshot(), result.fallbackUsed());
+            Supplier<String> fallback = () -> callModel(
+                    fallbackClient, contextualQuestion, conversationId, userId, retrievedSources);
+            ExecutionResult result;
+            try {
+                result = fallbackExecutor.execute(primary, fallback);
+            } catch (RuntimeException failure) {
+                throw AiFailureClassifier.safeException(failure);
+            }
+            ToolInvocationTracker.TicketOutcome outcome = invocationTracker.ticketOutcome();
+            return new ChatResult(result.answer(), sessionId, retrievedSources.get(),
+                    invocationTracker.wasInvoked(), invocationTracker.snapshot(), result.fallbackUsed(),
+                    outcome == null ? null : outcome.ticketId(),
+                    outcome == null ? null : outcome.status());
         } finally {
             invocationTracker.clear();
         }
+    }
+
+    private static RagIndexReadiness readyForUnitTests() {
+        RagIndexReadiness readiness = new RagIndexReadiness();
+        readiness.markReady();
+        return readiness;
     }
 
     public boolean requiresIdempotencyKey(String question) {
@@ -171,8 +210,11 @@ public class HelpDeskService {
         return memory.get(conversationId(userId, sessionId)).stream().map(Message::getText).toList();
     }
 
-    private String callModel(ChatClient client, String question, String conversationId, String userId) {
-        return client.prompt()
+    private String callModel(ChatClient client, String question, String conversationId, String userId,
+            AtomicReference<List<String>> retrievedSources) {
+        // A fallback invocation owns its result; never retain source metadata from a failed primary attempt.
+        retrievedSources.set(List.of());
+        ChatClientResponse response = client.prompt()
                 .user(question)
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
                 // The model path is read-only. Ticket writes are routed only by the server-side
@@ -180,7 +222,31 @@ public class HelpDeskService {
                 .tools(accessTools)
                 .toolContext(Map.of("userId", userId))
                 .call()
-                .content();
+                .chatClientResponse();
+        if (response == null || response.chatResponse() == null
+                || response.chatResponse().getResult() == null
+                || response.chatResponse().getResult().getOutput() == null) {
+            throw new IllegalStateException("AI 모델 응답이 비어 있습니다.");
+        }
+
+        long sourceExtractionStarted = System.nanoTime();
+        Object retrieved = response.context() == null
+                ? null
+                : response.context().get(QuestionAnswerAdvisor.RETRIEVED_DOCUMENTS);
+        if (retrieved instanceof List<?> documents) {
+            Set<String> sources = new LinkedHashSet<>();
+            documents.stream()
+                    .filter(Document.class::isInstance)
+                    .map(Document.class::cast)
+                    .map(document -> document.getMetadata().get("source"))
+                    .filter(Objects::nonNull)
+                    .map(Object::toString)
+                    .forEach(sources::add);
+            retrievedSources.set(List.copyOf(sources));
+        }
+        log.info("[PERF] rag.source.extract latencyMs={} sourceCount={}",
+                (System.nanoTime() - sourceExtractionStarted) / 1_000_000.0, retrievedSources.get().size());
+        return response.chatResponse().getResult().getOutput().getText();
     }
 
     String validate(String question, String sessionId, String userId) {
@@ -263,30 +329,6 @@ public class HelpDeskService {
         return question;
     }
 
-    private List<String> findSources(String question) {
-        long started = System.nanoTime();
-
-        try {
-            Set<String> sources = new LinkedHashSet<>();
-            vectorStore.similaritySearch(SearchRequest.builder()
-                    .query(question).topK(5)
-                    .similarityThreshold(AgentConfiguration.DEV_DESK_RAG_SIMILARITY_THRESHOLD)
-                    .build())
-                    .forEach(document -> {
-                        Object source = document.getMetadata().get("source");
-                        if (source != null)
-                            sources.add(source.toString());
-                    });
-            return List.copyOf(sources);
-        } catch (RuntimeException error) {
-            log.warn("RAG source 조회 실패; source 목록을 비워 반환합니다.");
-            return List.of();
-        } finally {
-            double elapsedMs = (System.nanoTime() - started) / 1_000_000.0;
-            log.info("[PERF] rag.source.lookup latencyMs={}", elapsedMs);
-        }
-    }
-
     private void remember(String conversationId, String question, String answer) {
         memory.add(conversationId, List.of(new UserMessage(question), new AssistantMessage(answer)));
     }
@@ -304,6 +346,11 @@ public class HelpDeskService {
     }
 
     public record ChatResult(String answer, String sessionId, List<String> sources,
-            boolean toolUsed, List<ToolCallInfo> toolCalls, boolean fallbackUsed) {
+            boolean toolUsed, List<ToolCallInfo> toolCalls, boolean fallbackUsed,
+            String ticketId, String ticketStatus) {
+        public ChatResult(String answer, String sessionId, List<String> sources,
+                boolean toolUsed, List<ToolCallInfo> toolCalls, boolean fallbackUsed) {
+            this(answer, sessionId, sources, toolUsed, toolCalls, fallbackUsed, null, null);
+        }
     }
 }

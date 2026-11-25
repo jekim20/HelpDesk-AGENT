@@ -14,7 +14,7 @@ spring:
   ai:
     openai:
       # 키는 소스에 넣지 않는다.  export OPENAI_API_KEY="sk-..."
-      # 기본값이 있어 키가 없어도 앱은 뜬다 — 실제 모델 호출 시점에만 401 이 난다.
+      # AI 키가 없거나 provider 오류가 나도 결정형 비AI 경로는 계속 제공한다.
       api-key: ${OPENAI_API_KEY:not-set}
       chat:
         options:
@@ -23,6 +23,14 @@ spring:
       embedding:
         options:
           model: text-embedding-3-small
+    retry:
+      # Avoid repeating paid chat/embedding requests after transient failures.
+      max-attempts: 1
+
+  http:
+    client:
+      connect-timeout: 2s
+      read-timeout: 8s
 
     # 운영에서는 프롬프트 원문 로깅을 반드시 끈다(개인정보가 그대로 쌓인다).
     chat:
@@ -56,6 +64,16 @@ management:
   endpoint:
     health:
       show-details: never
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db
+        ai:
+          include: ragIndex
+          show-details: always
   metrics:
     tags:
       application: devdesk-ai
@@ -65,6 +83,8 @@ logging:
     com.devdesk.agent: INFO
     org.springframework.web: INFO
     org.springframework.ai: INFO
+    # Spring AI's retry interceptor logs provider exception bodies (which can contain sensitive diagnostics).
+    org.springframework.ai.retry.autoconfigure.SpringAiRetryAutoConfiguration: ERROR
     org.springframework.boot.autoconfigure: INFO
     # SimpleLoggerAdvisor 의 요청·응답 로그를 보려면 DEBUG 로 올린다(개발 환경에서만).
     org.springframework.ai.chat.client.advisor: INFO

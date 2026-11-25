@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -18,10 +19,18 @@ public class AccessTools {
 
     private final AccessRepository accessRepository;
     private final ToolInvocationTracker invocationTracker;
+    private final TicketRepository ticketRepository;
 
     public AccessTools(AccessRepository accessRepository, ToolInvocationTracker invocationTracker) {
+        this(accessRepository, invocationTracker, null);
+    }
+
+    @Autowired
+    public AccessTools(AccessRepository accessRepository, ToolInvocationTracker invocationTracker,
+            TicketRepository ticketRepository) {
         this.accessRepository = accessRepository;
         this.invocationTracker = invocationTracker;
+        this.ticketRepository = ticketRepository;
     }
 
     @Tool(description = "현재 실행 사용자의 VPN, DEV_DB 또는 PROD_DB 접근 권한 상태를 조회한다.")
@@ -36,7 +45,16 @@ public class AccessTools {
         try {
             String userId = currentUser(context);
             String status = accessRepository.findStatus(userId, normalized).orElse("NOT_REQUESTED");
-            return "%s 권한 상태는 %s입니다.".formatted(normalized, status);
+            String answer = "%s 실제 접근 권한 상태는 %s입니다.".formatted(normalized, status);
+            if (ticketRepository != null) {
+                var pending = ticketRepository.findLatestPendingAccessRequest(userId, normalized);
+                if (pending.isPresent()) {
+                    var ticket = pending.get();
+                    answer += " 별도로 권한 신청 %s가 승인 대기 중입니다(PENDING)."
+                            .formatted(ticket.id());
+                }
+            }
+            return answer;
         } catch (RuntimeException error) {
             invocationTracker.markFailed();
             log.warn("권한 저장소 조회 실패 resource={}", normalized);

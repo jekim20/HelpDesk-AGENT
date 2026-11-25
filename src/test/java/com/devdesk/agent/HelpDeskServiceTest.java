@@ -24,7 +24,8 @@ import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
-import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor;
+import org.springframework.ai.document.Document;
 
 class HelpDeskServiceTest {
 
@@ -54,17 +55,20 @@ class HelpDeskServiceTest {
         when(primaryRequestSpec.tools(any(Object[].class))).thenReturn(primaryRequestSpec);
         when(primaryRequestSpec.toolContext(anyMap())).thenReturn(primaryRequestSpec);
         when(primaryRequestSpec.call()).thenReturn(primaryResponseSpec);
+        when(primaryResponseSpec.content()).thenReturn("정책 안내 응답");
         when(primaryResponseSpec.chatClientResponse()).thenReturn(ChatClientResponse.builder()
                 .chatResponse(ChatResponse.builder()
                         .generations(java.util.List.of(new Generation(new AssistantMessage("정책 안내 응답"))))
                         .build())
-                .context(Map.of())
+                .context(Map.of(QuestionAnswerAdvisor.RETRIEVED_DOCUMENTS, java.util.List.of(
+                        new Document("VPN guide", Map.of("source", "vpn-guide.md")),
+                        new Document("Access guide", Map.of("source", "access-request-guide.md")),
+                        new Document("Duplicate VPN guide", Map.of("source", "vpn-guide.md")))))
                 .build());
         service = new HelpDeskService(
                 primaryClient,
                 mock(ChatClient.class),
                 memory,
-                mock(VectorStore.class),
                 accessTools,
                 ticketTools,
                 new ModelFallbackExecutor(),
@@ -147,7 +151,6 @@ class HelpDeskServiceTest {
                         .chatMemoryRepository(new InMemoryChatMemoryRepository())
                         .maxMessages(20)
                         .build(),
-                mock(VectorStore.class),
                 modelAccessTools,
                 modelTicketTools,
                 new ModelFallbackExecutor(),
@@ -160,6 +163,26 @@ class HelpDeskServiceTest {
         verify(requestSpec).toolContext(Map.of("userId", "authenticated-user"));
         verify(requestSpec).tools(modelAccessTools);
         verify(requestSpec, never()).tools(modelAccessTools, modelTicketTools);
+    }
+
+    @Test
+    void credential_만료_문의는_차단되지_않고_기존_정책_모델_경로로_전달된다() {
+        String question = "인증 코드가 만료되면 무엇부터 확인하나요?";
+
+        HelpDeskService.ChatResult result = service.chat(question, "credential-expiry", "user1", false);
+
+        assertThat(result.answer()).isEqualTo("정책 안내 응답");
+        assertThat(result.toolUsed()).isFalse();
+        assertThat(tickets.findAll()).isEmpty();
+        verify(primaryRequestSpec).user(question);
+        verify(primaryRequestSpec).tools(accessTools);
+    }
+
+    @Test
+    void RAG_출처는_Advisor가_검색한_문서에서_순서와_중복제거를_보존한다() {
+        HelpDeskService.ChatResult result = service.chat("VPN 정책을 알려줘.", "sources", "user1", false);
+
+        assertThat(result.sources()).containsExactly("vpn-guide.md", "access-request-guide.md");
     }
 
     @Test
@@ -287,7 +310,8 @@ class HelpDeskServiceTest {
             "반품 정책을 알려주세요.",
             "휴가 신청 방법을 알려주세요.",
             "Gold 등급 혜택이 무엇인가요?",
-            "로그인 오류 해결 방법을 알려주세요."
+            "로그인 오류 해결 방법을 알려주세요.",
+            "인증 코드가 만료되면 무엇부터 확인하나요?"
     })
     void 정상_질문은_전체_입력검증을_통과한다(String question) {
         assertThat(service.validate(question, "session", "user1")).isNull();

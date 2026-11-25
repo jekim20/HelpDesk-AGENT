@@ -51,6 +51,16 @@ public class InMemoryTicketRepository implements TicketRepository {
                 .sorted(Comparator.comparing(Ticket::id)).toList();
     }
 
+    @Override
+    public java.util.Optional<Ticket> findLatestPendingAccessRequest(String requestedBy, String resource) {
+        return tickets.values().stream().map(StoredTicket::ticket)
+                .filter(ticket -> ticket.type() == TicketType.ACCESS_REQUEST)
+                .filter(ticket -> ticket.status().equals("PENDING"))
+                .filter(ticket -> ticket.requestedBy().equals(requestedBy))
+                .filter(ticket -> resource.equalsIgnoreCase(ticket.resource()))
+                .max(Comparator.comparing(Ticket::requestedAt));
+    }
+
     private record RequestKey(String requestedBy, String idempotencyKey) {}
     private record StoredTicket(String fingerprint, Ticket ticket) {}
 }

@@ -28,6 +28,21 @@ class DevDeskToolsTest {
     }
 
     @Test
+    void 권한_신청은_실제_권한을_바꾸지_않고_본인에게_신청상태만_안내한다() {
+        TicketRepository tickets = new InMemoryTicketRepository();
+        tickets.create(TicketType.ACCESS_REQUEST, "PROD_DB", "테스트 요청", "user1", UUID.randomUUID().toString());
+        AccessTools tools = new AccessTools(new AccessRepository(), new ToolInvocationTracker(), tickets);
+
+        String own = tools.getAccessStatus("PROD_DB", context("user1"));
+        String other = tools.getAccessStatus("PROD_DB", context("user2"));
+
+        assertThat(own).contains("실제 접근 권한 상태는 NOT_REQUESTED", "승인 대기", "PENDING", "HD-");
+        assertThat(own).doesNotContain("APPROVED");
+        assertThat(other).contains("실제 접근 권한 상태는 APPROVED")
+                .doesNotContain("승인 대기", "PENDING", "HD-");
+    }
+
+    @Test
     void 지원하지_않는_권한을_임의_리소스로_바꾸지_않는다() {
         AccessTools tools = new AccessTools(new AccessRepository(), new ToolInvocationTracker());
 

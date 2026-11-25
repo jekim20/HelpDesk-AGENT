@@ -99,6 +99,21 @@ class TicketRepositoryPostgresIntegrationTest {
     }
 
     @Test
+    void 최신_접근권한_신청은_사용자와_리소스별로만_조회된다() {
+        var own = ticketRepository.create(TicketRepository.TicketType.ACCESS_REQUEST,
+                "PROD_DB", "pending access " + UUID.randomUUID(), "user1", key()).ticket();
+        ticketRepository.create(TicketRepository.TicketType.ACCESS_REQUEST,
+                "PROD_DB", "another user's request", "user2", key());
+        ticketRepository.create(TicketRepository.TicketType.INCIDENT,
+                "PROD_DB", "not an access request", "user1", key());
+
+        assertThat(ticketRepository.findLatestPendingAccessRequest("user1", "PROD_DB"))
+                .contains(own);
+        assertThat(ticketRepository.findLatestPendingAccessRequest("user1", "VPN")).isEmpty();
+        assertThat(ticketRepository.findLatestPendingAccessRequest("unknown-user", "PROD_DB")).isEmpty();
+    }
+
+    @Test
     void 같은_KEY에_다른_내용이면_충돌하고_티켓을_추가하지_않는다() {
         String key = key();
         String original = "original " + UUID.randomUUID();

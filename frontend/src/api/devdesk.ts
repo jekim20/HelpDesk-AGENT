@@ -24,6 +24,8 @@ export interface ChatResponse {
   toolUsed: boolean;
   toolCalls: ToolCall[];
   fallbackUsed: boolean;
+  ticketId?: string | null;
+  ticketStatus?: string | null;
 }
 
 export interface Ticket {
@@ -45,6 +47,8 @@ export class DevDeskApiError extends Error {
   constructor(
     message: string,
     readonly status?: number,
+    readonly code?: string,
+    readonly retryable = false,
   ) {
     super(message);
     this.name = "DevDeskApiError";
@@ -59,7 +63,7 @@ async function refreshCsrfToken(): Promise<void> {
   try {
     response = await fetch("/api/csrf", { credentials: "same-origin" });
   } catch {
-    throw new DevDeskApiError("Backend unavailable");
+    throw new DevDeskApiError("Backend unavailable", undefined, "BACKEND_UNAVAILABLE", true);
   }
   if (!response.ok) throw new DevDeskApiError("Could not initialize browser security token", response.status);
   const data = (await response.json()) as { token: string; headerName: string };
@@ -89,20 +93,34 @@ async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
   try {
     response = await fetch(input, { ...init, headers, credentials: "same-origin" });
   } catch {
-    throw new DevDeskApiError("Backend unavailable");
+    throw new DevDeskApiError("Backend unavailable", undefined, "BACKEND_UNAVAILABLE", true);
   }
 
   if (!response.ok) {
     let message = statusMessage(response.status);
-    if (response.status === 400 || response.status === 409) {
-      try {
-        const body = (await response.json()) as { answer?: unknown };
-        if (typeof body.answer === "string" && body.answer) message = body.answer;
-      } catch {
-        // Keep the status-based message when the response is not JSON.
+    let code: string | undefined;
+    let retryable = false;
+    try {
+      const body = (await response.json()) as { answer?: unknown; code?: unknown; message?: unknown; retryable?: unknown };
+      if (typeof body.answer === "string" && body.answer && [400, 409].includes(response.status)) {
+        message = body.answer;
       }
+      if (typeof body.code === "string" && typeof body.message === "string") {
+        code = body.code;
+        retryable = body.retryable === true;
+        const safeMessages: Record<string, string> = {
+          AI_NOT_CONFIGURED: "AI 기능이 설정되지 않았습니다. 관리자에게 문의해 주세요.",
+          AI_AUTHENTICATION_FAILED: "AI 서비스 인증에 실패했습니다. 관리자 확인이 필요합니다.",
+          POLICY_INDEX_UNAVAILABLE: "정책 검색 인덱스를 사용할 수 없습니다. 관리자 확인이 필요합니다.",
+          AI_TEMPORARILY_UNAVAILABLE: "AI 서비스가 일시적으로 응답하지 않습니다. 잠시 후 다시 시도해 주세요.",
+          AI_REQUEST_FAILED: "AI 요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        };
+        message = safeMessages[code] ?? "요청을 처리하지 못했습니다. 관리자에게 문의해 주세요.";
+      }
+    } catch {
+      // Keep the status-based message when the response is not JSON.
     }
-    throw new DevDeskApiError(message, response.status);
+    throw new DevDeskApiError(message, response.status, code, retryable);
   }
 
   return (await response.json()) as T;
@@ -122,7 +140,7 @@ export async function signIn(username: string, password: string): Promise<Curren
       body: new URLSearchParams({ username, password }),
     });
   } catch {
-    throw new DevDeskApiError("Backend unavailable");
+    throw new DevDeskApiError("Backend unavailable", undefined, "BACKEND_UNAVAILABLE", true);
   }
   if (response.status === 401) throw new DevDeskApiError("Incorrect username or password", 401);
   if (!response.ok) throw new DevDeskApiError(statusMessage(response.status), response.status);

@@ -38,6 +38,7 @@ public class TicketTools {
             TicketCreation creation = ticketRepository.create(
                     type, resource, reason, userId, rawKey.toString());
             Ticket ticket = creation.ticket();
+            invocationTracker.recordTicketOutcome(ticket.id(), ticket.status());
             if (creation.replayed()) {
                 return "동일한 요청이 이미 접수되어 기존 %s 티켓을 반환했습니다. 상태는 PENDING입니다."
                         .formatted(ticket.id());

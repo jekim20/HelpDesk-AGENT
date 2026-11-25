@@ -137,32 +137,19 @@ jobs:
           [[ "$POSTGRES_IMAGE" =~ ^[a-z0-9][a-z0-9._:/-]*(:[A-Za-z0-9_.-]+)?@sha256:[a-f0-9]{64}$ ]]
           [[ "$EXPECTED_OPS_BUNDLE_SHA256" =~ ^[a-f0-9]{64}$ ]]
 
-      - name: Deploy exact published digests through SSM
+      - name: Deploy exact published digests through restricted SSM document
         env:
           SOURCE_COMMIT: ${{ needs.verify-release.outputs.commit }}
         run: |
           set -Eeuo pipefail
-          remote_script=$(cat <<REMOTE
-          set -Eeuo pipefail
-          cd /opt/helpdesk
-          actual_ops_hash=\$(python3 deploy/aws/scripts/ops-bundle-hash.py --root /opt/helpdesk)
-          test "\$actual_ops_hash" = "$EXPECTED_OPS_BUNDLE_SHA256"
-          test -f /etc/helpdesk/aws-deploy.env
-          grep -qx 'AWS_REGION=ap-southeast-2' /etc/helpdesk/aws-deploy.env
-          app='$BACKEND_IMAGE'
-          frontend='$FRONTEND_IMAGE'
-          postgres='$POSTGRES_IMAGE'
-          release_output=\$(sudo -n /opt/helpdesk/deploy/aws/scripts/record-release.sh "\$app" "\$frontend" "\$postgres")
-          release_file=\$(sed -n 's/^Immutable image release recorded: //p' <<<"\$release_output")
-          test -n "\$release_file"
-          sudo -n /opt/helpdesk/deploy/aws/scripts/deploy.sh "\$release_file"
-          REMOTE
-          )
-          parameters=$(jq -cn --arg command "$remote_script" '{commands:[$command]}')
+          parameters=$(jq -cn --arg backend "$BACKEND_IMAGE" --arg frontend "$FRONTEND_IMAGE" \
+            --arg postgres "$POSTGRES_IMAGE" --arg ops "$EXPECTED_OPS_BUNDLE_SHA256" \
+            '{BackendImage:[$backend],FrontendImage:[$frontend],PostgresImage:[$postgres],OpsHash:[$ops]}')
           command_id=$(aws ssm send-command \
             --region "$AWS_REGION" \
             --instance-ids "$AWS_INSTANCE_ID" \
-            --document-name AWS-RunShellScript \
+            --document-name HelpDesk-DeployRelease \
+            --document-version 1 \
             --timeout-seconds 1800 \
             --parameters "$parameters" \
             --comment "HelpDesk commit $SOURCE_COMMIT digest deployment" \

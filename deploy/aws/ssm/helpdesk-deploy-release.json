@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "2.2",
+  "description": "Deploy a digest-pinned HelpDesk release through the installed root-owned scripts only.",
+  "parameters": {
+    "BackendImage": {
+      "type": "String",
+      "interpolationType": "ENV_VAR",
+      "allowedPattern": "^[0-9]{12}\\.dkr\\.ecr\\.ap-southeast-2\\.amazonaws\\.com/helpdesk-backend@sha256:[a-f0-9]{64}$"
+    },
+    "FrontendImage": {
+      "type": "String",
+      "interpolationType": "ENV_VAR",
+      "allowedPattern": "^[0-9]{12}\\.dkr\\.ecr\\.ap-southeast-2\\.amazonaws\\.com/helpdesk-frontend@sha256:[a-f0-9]{64}$"
+    },
+    "PostgresImage": {
+      "type": "String",
+      "interpolationType": "ENV_VAR",
+      "allowedPattern": "^(postgres:17-alpine|docker\\.io/library/postgres)@sha256:[a-f0-9]{64}$"
+    },
+    "OpsHash": {
+      "type": "String",
+      "interpolationType": "ENV_VAR",
+      "allowedPattern": "^[a-f0-9]{64}$"
+    }
+  },
+  "mainSteps": [
+    {
+      "action": "aws:runShellScript",
+      "name": "deployPinnedRelease",
+      "precondition": {
+        "StringEquals": [
+          "platformType",
+          "Linux"
+        ]
+      },
+      "inputs": {
+        "timeoutSeconds": "1800",
+        "runCommand": [
+          "#!/bin/bash",
+          "set -Eeuo pipefail",
+          "set +x",
+          "umask 077",
+          "test \"$(id -u)\" -eq 0",
+          "test -n \"${SSM_BackendImage:-}\" && test -n \"${SSM_FrontendImage:-}\" && test -n \"${SSM_PostgresImage:-}\" && test -n \"${SSM_OpsHash:-}\"",
+          "cd /opt/helpdesk",
+          "for path in /etc/helpdesk/aws-deploy.env /opt/helpdesk/compose.aws.yaml /opt/helpdesk/deploy/aws/scripts/*.sh /opt/helpdesk/deploy/aws/scripts/ops-bundle-hash.py; do test -f \"$path\" && test ! -L \"$path\" && test \"$(stat -c %u \"$path\")\" = 0; done",
+          "grep -qx 'AWS_REGION=ap-southeast-2' /etc/helpdesk/aws-deploy.env",
+          "[[ \"$SSM_BackendImage\" =~ ^[0-9]{12}\\.dkr\\.ecr\\.ap-southeast-2\\.amazonaws\\.com/helpdesk-backend@sha256:[a-f0-9]{64}$ ]]",
+          "[[ \"$SSM_FrontendImage\" =~ ^[0-9]{12}\\.dkr\\.ecr\\.ap-southeast-2\\.amazonaws\\.com/helpdesk-frontend@sha256:[a-f0-9]{64}$ ]]",
+          "[[ \"$SSM_PostgresImage\" =~ ^(postgres:17-alpine|docker\\.io/library/postgres)@sha256:[a-f0-9]{64}$ ]]",
+          "[[ \"$SSM_OpsHash\" =~ ^[a-f0-9]{64}$ ]]",
+          "test -f /var/lib/helpdesk/active-images.env && test \"$(stat -c %u /var/lib/helpdesk/active-images.env)\" = 0",
+          "current_pg=$(sed -n 's/^HELPDESK_POSTGRES_IMAGE=//p' /var/lib/helpdesk/active-images.env)",
+          "test \"$current_pg\" = \"$SSM_PostgresImage\"",
+          "actual_ops_hash=$(python3 /opt/helpdesk/deploy/aws/scripts/ops-bundle-hash.py --root /opt/helpdesk)",
+          "test \"$actual_ops_hash\" = \"$SSM_OpsHash\"",
+          "release_output=$(/opt/helpdesk/deploy/aws/scripts/record-release.sh \"$SSM_BackendImage\" \"$SSM_FrontendImage\" \"$SSM_PostgresImage\")",
+          "[[ \"$release_output\" == \"Immutable image release recorded: /etc/helpdesk/releases/\"* ]]",
+          "release_file=${release_output#Immutable image release recorded: }",
+          "test -f \"$release_file\"",
+          "/opt/helpdesk/deploy/aws/scripts/deploy.sh \"$release_file\""
+        ]
+      }
+    }
+  ]
+}

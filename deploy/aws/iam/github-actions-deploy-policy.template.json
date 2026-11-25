@@ -2,11 +2,11 @@
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "SendOnlyToHelpDeskInstanceUsingAwsRunShellScript",
+      "Sid": "SendOnlyApprovedHelpDeskDocumentToInstance",
       "Effect": "Allow",
       "Action": "ssm:SendCommand",
       "Resource": [
-        "arn:aws:ssm:ap-southeast-2::document/AWS-RunShellScript",
+        "arn:aws:ssm:ap-southeast-2:ACCOUNT_ID:document/HelpDesk-DeployRelease",
         "arn:aws:ec2:ap-southeast-2:ACCOUNT_ID:instance/INSTANCE_ID"
       ]
     },

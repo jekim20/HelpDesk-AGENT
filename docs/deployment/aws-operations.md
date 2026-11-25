@@ -7,8 +7,8 @@ This guide prepares a private, single-instance demo in `ap-southeast-2`. It does
 - `compose.aws.yaml` runs only digest-pinned images. It never builds from source. PostgreSQL data is bind-mounted from the dedicated EBS mount; the app and database have no host-published ports; Nginx is bound to `127.0.0.1`.
 - `deploy/aws/scripts/record-release.sh` records three immutable image references into a mode-0600 release manifest.
 - `prepare-host.sh` verifies ARM64, Compose, the EBS mount and its encryption, PostgreSQL directory ownership, SSM parameters, and Compose configuration. It never formats a disk or deletes data.
-- `deploy.sh` backs up the current DB to S3 before replacing a running release, stores the previous image manifest, pulls the candidate, starts services, and checks container health plus the frontend route. A failed release attempts an image-only rollback.
-- `rollback.sh` activates the prior image manifest and verifies health. It never rolls back or drops database state.
+- `deploy.sh` pulls and validates the candidate, takes an S3 backup of the existing DB, and checks container health, image identity, and the frontend route before publishing the active manifest.
+- `rollback.sh` activates and verifies the prior app and frontend images while retaining the PostgreSQL container. It can replace an unhealthy app when the PostgreSQL container is healthy and the existing image references match the active manifest. Both scripts use the same recovery procedure when activation fails.
 - `backup-postgres.sh` writes a custom-format `pg_dump` file and uploads it to the configured S3 prefix with SSE-S3. `--local-only PATH` is available for isolated local backup testing; it refuses to overwrite a file.
 - `restore-test-postgres.sh BACKUP` restores into a unique, new database and verifies ticket counts, PENDING counts, idempotency-key counts, and the unique constraint. It never drops a database. A failed restore database is intentionally left for inspection.
 - `verify-persistence.sh` compares ticket counts and a ticket/key fingerprint before and after PostgreSQL, app, and frontend restarts.
@@ -34,17 +34,17 @@ The operator policy template is deliberately separate from the instance role. Sc
 
 Identify the attached data disk by its EBS volume serial in `lsblk -o NAME,SERIAL,FSTYPE,MOUNTPOINTS`. Never select a disk by guessed `/dev/nvme*` ordering. Formatting is destructive: only an operator who has verified the new volume ID, empty filesystem, and encryption may create a filesystem. The scripts intentionally do not run `mkfs`.
 
-Mount the verified filesystem at `/srv/helpdesk-data`, configure its UUID in `/etc/fstab`, then create `/srv/helpdesk-data/postgres`. Set `HELPDESK_PGDATA_PATH` to that directory and `HELPDESK_EBS_MOUNT` to the mount point. `prepare-host.sh` checks that the Postgres path resolves to that mounted volume and fails closed if the disk is absent. Install `deploy/aws/systemd/docker.service.d/20-helpdesk-ebs.conf` as `/etc/systemd/system/docker.service.d/20-helpdesk-ebs.conf`, then run `systemctl daemon-reload`; this makes Docker wait for the data mount at boot so PostgreSQL cannot silently initialize on the root disk if the EBS mount is missing.
+Mount the verified filesystem at `/data`, configure its UUID in `/etc/fstab`, then create `/data/postgres`. Set `HELPDESK_PGDATA_PATH` to that directory and `HELPDESK_EBS_MOUNT` to the mount point. `prepare-host.sh` checks that the Postgres path resolves to that mounted volume and fails closed if the disk is absent. Install `deploy/aws/systemd/docker.service.d/20-helpdesk-ebs.conf` as `/etc/systemd/system/docker.service.d/20-helpdesk-ebs.conf`, then run `systemctl daemon-reload`; this makes Docker wait for the data mount at boot so PostgreSQL cannot silently initialize on the root disk if the EBS mount is missing.
 
 ## First deployment sequence (after approval)
 
 1. Confirm the approved account and region; create/tag the resources above. Record the EC2 instance ID, EBS volume ID, ECR repository URIs, S3 bucket, and SecureString parameter names in `/etc/helpdesk/aws-deploy.env` based on `deploy/aws/config.example.env`. The file contains names and IDs only, never values of secrets.
 2. Attach the encrypted data EBS and mount it persistently. Install/enable Docker Engine, Docker Compose v2, AWS CLI v2, and the SSM Agent on AL2023 using AWS's current Amazon Linux instructions. Confirm SSM reports the node online before opening a local tunnel.
 3. Build and publish the frontend and backend for `linux/arm64` to the two immutable ECR repositories, tagged with the Git commit SHA. Resolve the manifest digests from ECR. Resolve the official `postgres:17-alpine` ARM64 image digest too. Do not deploy mutable `latest` tags.
-4. Copy `compose.aws.yaml` and scripts to `/opt/helpdesk`; install scripts executable. Create `/etc/helpdesk/releases/` and `/var/lib/helpdesk/` with mode 0700. Record exact digests with `record-release.sh`; for the first release, install that manifest as `/var/lib/helpdesk/active-images.env`.
+4. Copy `compose.aws.yaml` and scripts to `/opt/helpdesk`; install scripts executable. Create `/etc/helpdesk/releases/` and `/var/lib/helpdesk/` with mode 0700. Record exact digests with `record-release.sh`. Keep the first manifest in the releases directory until deployment publishes it.
 5. Create the SecureString parameters from the AWS console or an approved secure workflow; do not put secret values in shell history, instance user data, Git, or this document. Confirm the instance role can read only those exact parameters.
-6. As root, run `/opt/helpdesk/deploy/aws/scripts/prepare-host.sh`. It verifies the EBS volume is encrypted using read-only `ec2:DescribeVolumes`. If it fails, stop and fix the named precondition; do not remove or recreate the DB directory.
-7. Run `sudo /opt/helpdesk/deploy/aws/scripts/deploy.sh /etc/helpdesk/releases/<release>.env` from an SSM shell. The initial release has no prior DB to back up; later deployments require the S3 backup to succeed before replacing a running database version.
+6. As root, run `/opt/helpdesk/deploy/aws/scripts/prepare-host.sh /etc/helpdesk/releases/<release>.env`. With no argument, the script validates the existing active release. It verifies the EBS volume is encrypted using read-only `ec2:DescribeVolumes`. If it fails, stop and fix the named precondition; do not remove or recreate the DB directory.
+7. Run `sudo /opt/helpdesk/deploy/aws/scripts/deploy.sh /etc/helpdesk/releases/<release>.env` from an SSM shell. Later deployments require a healthy running release and a successful S3 backup before replacing app and frontend containers. First deployment can initialize PostgreSQL in an empty EBS data directory. A retry can reuse the healthy PostgreSQL container when its digest matches.
 8. Open the private demo through an SSM local port-forward (replace the instance ID):
 
    ```sh
@@ -58,7 +58,20 @@ Mount the verified filesystem at `/srv/helpdesk-data`, configure its UUID in `/e
 
 ## Health, backup, restart, rollback
 
-From an SSM shell, inspect services with `sudo docker compose --project-name helpdesk-agent --env-file /dev/null -f /opt/helpdesk/compose.aws.yaml ps`. Inspect `logs --since=10m app frontend postgres` only for operational errors. Do not enable prompt/request-body logging. Verify `http://127.0.0.1:8080/`, login, role restrictions, and a dummy ticket before calling a deployment healthy. Run all scripts with `sudo` so `/var/lib/helpdesk`, Docker, and the temporary ECR auth directory under `/run` have consistent ownership.
+Run the scripts with `sudo` so the state, Docker, and ECR auth directories have consistent ownership. To verify the active release from an SSM root shell, load the same configuration and run the shared checks.
+
+```sh
+source /opt/helpdesk/deploy/aws/scripts/common.sh
+load_config
+verify_data_mount
+load_images "$ACTIVE_IMAGES_FILE"
+load_secrets
+compose ps
+wait_for_services
+ticket_fingerprint
+```
+
+Check for a pending release before trusting the active manifest. Use `compose logs --since=10m app frontend postgres` to inspect operational errors without enabling prompt or request-body logging. Verify the loopback route, login and role restrictions. Use a dummy ticket for the write check.
 
 Run `backup-postgres.sh` before planned schema changes. For restore rehearsal, use `restore-test-postgres.sh s3://BUCKET/PREFIX/OBJECT.dump`; it creates a new DB and leaves it intact. Do not use `pg_restore --clean`, `DROP DATABASE`, or restore over `helpdesk` in the normal rehearsal. During backup/restore count comparison, pause test writes so the counts are comparable.
 
@@ -66,7 +79,21 @@ Changing the DB password SecureString alone does not rotate the password in an i
 
 Run `verify-persistence.sh` to validate container restart recovery. For the EC2 reboot test, restart the instance from the EC2 console, reconnect with SSM, and run the same script. Confirm the data filesystem mounted before Docker starts. If it did not mount, stop Compose; do not let PostgreSQL initialize an empty directory on the root disk.
 
-`deploy.sh` rejects a PostgreSQL digest change; PostgreSQL major/minor image upgrades require a separately planned database migration. `rollback.sh` restores the previous app/frontend image manifest while keeping the same pinned PostgreSQL image. It does not reverse Flyway migrations. If a DB schema migration is incompatible, keep the current DB and restore the pre-deploy backup into a separate recovery volume/instance first; never overwrite the sole copy.
+`deploy.sh` rejects a PostgreSQL digest change; PostgreSQL major/minor image upgrades require a separately planned database migration. `rollback.sh` restores the previous app/frontend image manifest while keeping the same pinned PostgreSQL image. Flyway schema changes and simultaneous configuration or secret changes need their own recovery plan. If a DB schema migration is incompatible, keep the current DB and restore the pre-deploy backup into a separate recovery volume/instance first; never overwrite the sole copy.
+
+### Release failure and manual recovery
+
+- Release operations require `flock` and take an exclusive lock next to the active manifest. Avoid concurrent manual Docker commands, service stops, or restarts during a release.
+- Login, pull, platform validation, and backup failures return nonzero before the app and frontend containers change. If starting the candidate fails, the script runs the original app and frontend images from the local cache. It verifies all three containers and the frontend route before declaring recovery. The failed command still returns nonzero.
+- During replacement, `active-images.env.pending/` records the candidate and any original and previous manifests. It remains after failed recovery or an interrupted switch. The active file, if present, records the last verified release. Use the pending directory as a signal to check the live state before trusting that file. A recovery failure triggers a best-effort stop of app and frontend.
+- For manual recovery, hold the same lock and inspect the manifests in the pending directory, the EBS mount, and the actual container images and health. Use the original manifest when compatible with the current schema. Start the pinned app and frontend with `compose up -d --no-deps --no-build --pull never app frontend` after loading config, secrets and that manifest via `common.sh`. If an image is missing locally, authenticate to ECR before pulling it. Verify container health and image identity with `wait_for_services`, then check login and a dummy ticket. Reconcile active and previous files with the verified release and the saved copies. Rename the pending directory to a retained recovery record only after these checks pass. If recovery remains blocked, keep the record and inspect the logs and DB schema with the app and frontend stopped. First-deployment recovery may leave an initialized PostgreSQL container. Preserve the data and match the container's digest on retry.
+
+### AWS rollout verification for the updated scripts
+
+1. In an approved SSM session on a disposable AWS staging stack, copy the updated scripts including `release.sh`. Verify the current app and frontend image references, health, PostgreSQL container ID, and the output of `ticket_fingerprint` from `common.sh`. Use a dummy ticket and pause concurrent writes for fingerprint comparison.
+2. Deploy a known-good second app and frontend release with the same PostgreSQL digest. Expect exit 0. Check the active and previous manifests against each container's `.Config.Image` and the pinned image's local ID. Run `rollback.sh` and repeat the checks with the two app and frontend releases exchanged. PostgreSQL's container ID and ticket fingerprint should match the starting values.
+3. On staging, try a nonexistent app digest to exercise ECR pull failure and a purpose-built unhealthy app image to exercise activation failure. Expect a nonzero exit in both cases. Verify the original manifest and healthy running containers after recovery. To exercise a failed manual rollback, point the staging previous manifest at the unhealthy app version while retaining a copy of the known-good manifest.
+4. Rehearse unrecoverable activation on staging with a controlled failure of both app image versions. Confirm the pending directory remains, app and frontend are stopped or flagged for inspection, and PostgreSQL persists. Follow manual recovery above. A distinct staging project and empty data directory are required to exercise the first-deployment case.
 
 For planned downtime, run `stop-services.sh`, then stop the EC2 instance in the console. Do not terminate the instance or delete the dedicated EBS volume when data is needed. Run `cost-check.sh` and the Billing console review to find leftover public IPs, EBS volumes/snapshots, NAT gateways, endpoints, ECR images, S3 backups, or log groups.
 
@@ -81,7 +108,13 @@ docker compose --env-file /tmp/helpdesk-aws-compose-test.env -f compose.aws.yaml
 
 Use `docker buildx build --platform linux/arm64 --load -f Dockerfile ...` and the equivalent frontend command to verify local ARM64 builds where the local Docker engine supports Buildx. Use a dedicated test Compose project/database for backup and restore rehearsal. Do not run `down -v` against the local development project.
 
-The existing Actions workflow builds ARM64 images but does not publish them. ECR publishing, immutable tag policy tests, manual-approval deployment, and an AWS-targeted workflow remain a later change. AWS behavior is unverified until these steps are performed.
+The existing Actions workflow builds ARM64 images but does not publish them. ECR publishing, immutable tag policy tests, manual-approval deployment, and an AWS-targeted workflow remain a later change. The workflow currently verifies the ARM64 build. ECR publishing and deployment automation require separate verification.
+
+### Release failure injection
+
+Run `python3 deploy/aws/tests/test-release.py` from the repository root with a local ARM64 Docker engine and cached `postgres:16-alpine` and `postgres:17-alpine` images. The suite uses disposable Compose containers, real PostgreSQL data, and stubbed AWS calls and image pulls. It verifies the manifests against actual container images and health. The current failure paths were tested locally. AWS staging verification of these changes remains separate from the previously verified EC2 deployment and data recovery.
+
+On 2026-11-24 KST, all 11 scenario groups passed on local ARM64 Docker. After failed recovery, the original PostgreSQL container ID and sentinel row still matched their values before the release changes.
 
 ### 2026-11-19 implementation verification
 

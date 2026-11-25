@@ -1,0 +1,8 @@
+# Use with compose.smoke.yaml. Both providers point inside the app container.
+services:
+  app:
+    environment:
+      OPENAI_API_KEY: not-set
+      SPRING_AI_OPENAI_BASE_URL: http://127.0.0.1:1
+      SPRING_AI_OPENAI_CHAT_BASE_URL: http://127.0.0.1:1
+      SPRING_AI_OPENAI_EMBEDDING_BASE_URL: http://127.0.0.1:1

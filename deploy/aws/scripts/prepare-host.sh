@@ -5,14 +5,14 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=common.sh
 source "$SCRIPT_DIR/common.sh"
 
+[[ $# -le 1 ]] || fail 'usage: prepare-host.sh [release-images.env]'
 load_config
 need_command docker
 need_command findmnt
 need_command aws
 need_command stat
 need_file "$COMPOSE_FILE"
-need_file "$ACTIVE_IMAGES_FILE"
-load_images "$ACTIVE_IMAGES_FILE"
+load_images "${1:-$ACTIVE_IMAGES_FILE}"
 
 [[ "$(uname -m)" == aarch64 ]] || fail "host architecture is not aarch64"
 docker_arch=$(docker info --format '{{.Architecture}}' 2>/dev/null) || fail "Docker daemon is unavailable"

@@ -44,6 +44,7 @@ validate_image_ref() {
 load_images() {
   local file=${1:-$ACTIVE_IMAGES_FILE}
   need_file "$file"
+  unset HELPDESK_APP_IMAGE HELPDESK_FRONTEND_IMAGE HELPDESK_POSTGRES_IMAGE
   # This file contains image references, not credentials.
   # shellcheck disable=SC1090
   source "$file"
@@ -107,7 +108,10 @@ wait_for_postgres() {
     id=$(compose ps -q postgres 2>/dev/null || true)
     if [[ -n "$id" ]]; then
       status=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$id" 2>/dev/null || true)
-      [[ "$status" == healthy ]] && return 0
+      if [[ "$status" == healthy ]]; then
+        container_uses_image "$id" "$HELPDESK_POSTGRES_IMAGE"
+        return
+      fi
       [[ "$status" == exited || "$status" == dead ]] && return 1
     fi
     sleep 3
@@ -156,6 +160,15 @@ validate_local_images() {
   done
 }
 
+container_uses_image() {
+  local container=$1 expected=$2 actual expected_id actual_id
+  actual=$(docker inspect --format '{{.Config.Image}}' "$container" 2>/dev/null) || return 1
+  [[ "$actual" == "$expected" ]] || return 1
+  expected_id=$(docker image inspect --format '{{.Id}}' "$expected" 2>/dev/null) || return 1
+  actual_id=$(docker inspect --format '{{.Image}}' "$container" 2>/dev/null) || return 1
+  [[ -n "$expected_id" && "$actual_id" == "$expected_id" ]]
+}
+
 wait_for_services() {
   local deadline=$((SECONDS + HEALTH_TIMEOUT_SECONDS)) service id status
   local services=(postgres app frontend)
@@ -170,15 +183,16 @@ wait_for_services() {
         all_healthy=0
         break
       fi
-      local expected_name expected_image actual_image
+      local expected_name
       case "$service" in
         postgres) expected_name=HELPDESK_POSTGRES_IMAGE ;;
         app) expected_name=HELPDESK_APP_IMAGE ;;
         frontend) expected_name=HELPDESK_FRONTEND_IMAGE ;;
       esac
-      expected_image=${!expected_name}
-      actual_image=$(docker inspect --format '{{.Config.Image}}' "$id" 2>/dev/null || true)
-      if [[ "$actual_image" != "$expected_image" ]]; then all_healthy=0; break; fi
+      if ! container_uses_image "$id" "${!expected_name}"; then
+        all_healthy=0
+        break
+      fi
     done
     if (( all_healthy )); then
       curl --fail --silent --max-time 10 "http://127.0.0.1:${DEMO_PORT}/" >/dev/null || { sleep 2; continue; }

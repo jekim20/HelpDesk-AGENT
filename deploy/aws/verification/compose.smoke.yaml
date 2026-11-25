@@ -1,0 +1,6 @@
+# Temporary override for the approved AWS integration smoke.
+services:
+  app:
+    environment:
+      SPRING_AI_RETRY_MAX_ATTEMPTS: "1"
+      SPRING_AI_OPENAI_CHAT_OPTIONS_MAXTOKENS: "256"

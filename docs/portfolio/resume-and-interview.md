@@ -1,5 +1,10 @@
 # HelpDesk AI Agent — 이력서 및 면접 자료
 
+> **최신 결과 안내 (2026-11-26):** 아래 일부 답변 초안은 앞선 평가 시점의 수치를 담고 있습니다. 현재 원격 CI는 Java 169개 중 162 통과·7 skip·0 실패이며 PostgreSQL 통합 테스트 10개는 이 집계의 하위 집합입니다. Python evaluator 33/33, Playwright 10/10, release failure injection 11/11 및 native ARM64 build도 성공했습니다. 실제 AWS 최종 배포는 [Deploy run 45636757244](https://github.com/jekim20/HelpDesk-AGENT/actions/runs/45636757244)에서 확인할 수 있습니다. 최신 범위와 한계는 [README](../../README.md)를 기준으로 갱신하세요.
+>
+> 본문 중 Live 평가와 기술 답변은 2026-11-05 시점의 기록을 포함합니다. 이 문서는 문장 초안이므로 본인 기여와 실제 설명 가능한 부분만 제출 전에 확정하세요.
+
+
 ## 이력서용 요약
 
 **프로젝트 소개 (1문장)**
@@ -12,7 +17,7 @@ Spring AI와 문서 검색을 활용해 헬프데스크 문의에 답하고, 인
 
 **검증된 프로젝트 결과 (개인 수행 주장과 분리)**
 
-Docker Live 평가에서 15개 시나리오·17개 턴이 통과했고 Tool 선택·인자·실행은 각각 6/6이었습니다. Java는 129개 통과·3개 스킵, Python evaluator는 마지막 기록 기준 33개 통과이며, PostgreSQL 재시작과 동시 요청 멱등성 검증 결과가 있습니다.
+Docker Live 평가에서 15개 시나리오·17개 턴이 통과했고 Tool 선택·인자·실행은 각각 6/6이었습니다. Java는 최신 원격 CI에서 169개 중 162개 통과·7개 스킵이며, PostgreSQL 통합 테스트 10개는 이 집계에 포함됩니다. Python evaluator는 33/33이며, PostgreSQL 재시작과 동시 요청 멱등성 검증 결과가 있습니다.
 
 > Git 커밋 작성자만으로 코드 작성·설계의 세부 개인 기여를 증명할 수는 없습니다. Codex도 사용되었으므로 제출 전에 본인이 직접 한 설계·구현·검증과 AI 도구가 작성·보조한 부분을 구분하세요. 아래 확인표를 먼저 작성하고 Live 15/15는 단일 고정 평가 결과로 한정해 표기하세요.
 
@@ -108,12 +113,12 @@ Memory conversation ID를 사용자 ID와 세션 ID의 조합으로 만듭니다
 
 ## 결과 수치 요약
 
-- Docker Live Agent 평가: 시나리오 15/15, 턴 17/17
-- Tool 선택/인자/실행: 각 6/6
-- Java JUnit: 129 pass, 3 skipped, 0 failed (132 total)
-- Python evaluator: 33 pass
-- 전체 요청 latency: 평균 831.69 ms, median 10.65 ms, P95 3,092.71 ms
-- Live 격리 DB에서 티켓 3건 확인; user1 요청자, `PENDING`, 고유 idempotency key
-- 실제 PostgreSQL 같은 key 동시 요청 12건에서 1 ticket 확인
+- 과거 Docker Live Agent 평가(2026-11-05): 시나리오 15/15, 턴 17/17
+- 과거 해당 run의 Tool 선택/인자/실행: 각 6/6
+- 최신 원격 CI Java/JUnit: 169 total, 162 pass, 7 skipped, 0 failed; PostgreSQL 통합 10개는 이 집계 안에 포함
+- 최신 Python evaluator: 33/33
+- 과거 Live 평가의 전체 요청 latency: 평균 831.69 ms, median 10.65 ms, P95 3,092.71 ms
+- 과거 Live 평가 격리 DB 티켓 3건 확인; user1 요청자, PENDING, 고유 idempotency key
+- 실제 PostgreSQL 동일 key 24개 동시 제출 작업에서 티켓 1건 확인(테스트 worker 8개)
 
-평가 원본: [Docker 최종 실행 결과](../../evaluation/results/runs/docker-live-final-20261105-203123-602029/latest.json). 전체 latency는 모델 호출만의 시간이 아닙니다. 최신 대체 모델의 종료 정보는 [OpenAI deprecation 문서](https://developers.openai.com/api/docs/deprecations), 호환성은 [GPT-6 Luna](https://developers.openai.com/api/docs/models/gpt-6-luna) 및 [Spring AI OpenAI Chat](https://docs.spring.io/spring-ai/reference/api/chat/openai-chat.html) 문서에서 확인합니다.
+Live 원본: [Docker 최종 실행 결과](../../evaluation/results/runs/docker-live-final-20261105-203123-602029/latest.json). 전체 latency는 모델 호출만의 시간이 아닙니다. 최신 CI는 [README의 Actions 증빙](../../README.md)을 참조하세요.

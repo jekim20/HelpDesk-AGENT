@@ -1,6 +1,7 @@
 # Secure RAG 1차 MVP 평가
 
-> 이 문서는 `556147d` 기준의 **과거 baseline 실험 절차**다. 아래의 “추가 과제”는 당시 MVP 범위를 설명하며 현재 `main`의 미구현 목록과 동일하지 않다. 현재 `main`에는 규칙 기반 `PromptInjectionGuard`와 입력 안전성 검사가 있지만 별도 `PrivacyGuard`는 없다. 현재 구현 범위는 [README](../README.md)를 기준으로 확인한다.
+> 이 문서는 556147d 시점의 과거 MVP 평가 절차와 당시 범위를 보존합니다. 아래 추가 과제는 현재 미구현 목록이 아닙니다. 최신 구현에서는 개인정보·자격증명 입력 검사를 UserInputSafetyAdvisor와 Prompt Injection guard가 담당하며, 별도 PrivacyGuard 클래스가 있다는 뜻은 아닙니다. 현재 구조와 결과는 [README](../README.md)와 [현재 아키텍처](architecture.md)를 기준으로 확인하세요.
+
 
 공격 데이터는 `src/test/resources/security/prompt_injection_cases.json`에 있다. 각 항목의
 `expected: BLOCK`은 목표 동작이며 실제 응답의 판정값이 아니다.

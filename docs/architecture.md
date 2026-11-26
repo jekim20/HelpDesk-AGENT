@@ -1,67 +1,59 @@
-# DevDesk AI Architecture
+# HelpDesk AI Agent Architecture
 
-## 요청 흐름
+> 현재 main의 구조를 설명합니다. 이전 구조와 구현 기록은 날짜가 명시된 기술 회고에서 확인하세요.
 
-```text
-User
-  ↓
-POST /api/chat (userId·sessionId는 클라이언트가 지정)
-  ↓
-ChatController ── HTTP validation
-  ↓
-HelpDeskService
-  ├─ Prompt Injection·입력 안전성 검사 (Memory·RAG·Tool보다 먼저)
-  ├─ deterministic access route ── AccessTools ── AccessRepository(in-memory)
-  ├─ explicit task route ───────── TicketTools ── TicketRepository(PostgreSQL, PENDING)
-  └─ conversational route
-       ↓
-     TokenMeter → Safety Advisor → Chat Memory → RAG → LLM + registered Tools
-       ├─ primary client
-       └─ fallback client (primary failure 시 1회)
-  ↓
-answer + sources + toolUsed + toolCalls[] + fallbackUsed
+## 애플리케이션 요청 흐름
 
-Agent Scenario Evaluation
-  └─ 실제 /api/chat 응답으로 task/tool/source/safety/memory/latency 검증
+```mermaid
+flowchart LR
+  Browser[React UI] -->|session cookie and CSRF| Nginx[Nginx static assets and API proxy]
+  Nginx --> Security[Spring Security filter chain]
+  Security --> API[ChatController]
+  API --> Service[HelpDeskService validation and routing]
+  Service -->|policy question| Model[Spring AI ChatClient]
+  Model --> Advisor[QuestionAnswerAdvisor retrieval]
+  Advisor --> Vector[(SimpleVectorStore in process memory)]
+  Model --> Memory[(user and session scoped Chat Memory)]
+  Model <-->|chat and embeddings| OpenAI[OpenAI API]
+  Service -->|deterministic read| Access[AccessTools]
+  Access --> AccessRepo[(in-memory demo access repository)]
+  Service -->|explicit write request| Ticket[TicketTools]
+  Ticket --> JDBC[JdbcTicketRepository]
+  JDBC --> PG[(PostgreSQL tickets and idempotency)]
+  Flyway[Flyway migrations] --> PG
+  Service --> Trace[request scoped tool trace]
 ```
 
-## 주요 결정
+## 경로별 동작
 
-### 확정 가능한 상태 조회는 deterministic하게 처리
+### 입력 검사 및 인증 경계
 
-리소스가 명확한 권한 조회를 생성 모델 판단에 전부 맡기지 않는다. 규칙으로 intent와 지원 리소스를 확인한 뒤 `AccessTools`를 직접 호출한다. Tool 내부의 사용자 식별은 질문 문장 속 ID가 아닌 `ToolContext.userId`를 사용한다. 현재 이 값은 인증 시스템이 아니라 HTTP 요청 본문의 `userId`에서 온다.
+Browser 요청은 세션과 CSRF 보호를 거쳐 Spring Security에 도달합니다. 서버는 인증 principal을 업무 사용자로 사용합니다. 요청 본문의 legacy userId가 principal과 다르면 거부합니다. Prompt Injection 및 자격증명 입력 검사는 모델·RAG·Tool 경로보다 먼저 수행됩니다.
 
-### 정보 질문과 작업 요청 분리
+### 정책 질문
 
-정책과 절차는 RAG 문서를 근거로 답하도록 구성했다. 권한 조회나 티켓 접수는 Repository를 외부 시스템 경계로 둔 Tool에서 수행한다. LLM 경로에도 두 Tool을 등록해 맥락이 필요한 표현을 처리할 수 있게 했다.
+HelpDeskService는 일반 정책 질문을 Spring AI ChatClient로 전달합니다. QuestionAnswerAdvisor가 SimpleVectorStore에서 정책 문서를 검색하고, retrieval 문서는 응답 context에서 출처로 재사용됩니다. 출처는 검색된 문서를 나타내며 답변의 각 문장이 정확하다는 보증은 아닙니다.
 
-### write operation에 승인 gate 유지
+정책 문서는 시작 시 인덱싱됩니다. SimpleVectorStore와 대화 Memory는 프로세스 메모리 기반이므로 재시작 후 보존되지 않습니다. 재시작 과정에서 정책 문서를 다시 인제스트하며 embedding provider 설정과 사용 가능성에 의존합니다.
 
-`TicketTools`는 `ACCESS_REQUEST`, `INCIDENT`, `ACCOUNT_SUPPORT`를 만들 수 있지만 결과는 항상 `PENDING`이다. Agent는 권한 부여나 장애 해결을 직접 수행하지 않는다.
+### 읽기와 쓰기
 
-### Tool 실행 결과 추적
+리소스와 의도가 명확한 권한 상태 조회는 LLM 선택 없이 AccessTools로 결정형 실행합니다. 이 도구는 샘플 in-memory 상태를 읽으며 실제 IAM 권한을 변경하지 않습니다.
 
-`ToolAuditAspect`가 Tool 이름, allowlist argument, 마스킹된 결과, 업무 성공 여부와 Tool 내부 실행 시간을 수집한다.
-`ToolInvocationTracker`는 한 요청의 호출을 순서대로 보관하고 응답 생성 후 반드시 비운다. 기존 `toolUsed`는 하위 호환을 위해 유지한다.
-Access Tool은 `resource`, Ticket Tool은 `type`과 `resource`만 공개하며 `ToolContext`, `userId`, 티켓 `reason`은 제외한다.
+권한 신청·장애 티켓 쓰기는 서버가 명시적 요청으로 판정한 경로에서만 TicketTools로 연결됩니다. 일반 모델 경로에는 읽기 도구만 제공합니다. 저장 티켓은 PostgreSQL과 Flyway schema를 사용하고 PENDING 상태로 생성됩니다. Idempotency-Key와 사용자별 unique 제약으로 동일 요청 재시도를 처리합니다.
 
-### 실패를 성공으로 바꾸지 않음
+### 응답 및 추적
 
-Access 조회 실패는 상태를 추측하지 않고 “조회할 수 없음”을 반환한다. Ticket 저장 실패는 “접수하지 못함”을 반환한다. write Tool은 중복 생성 위험 때문에 자동 retry하지 않는다.
+API 응답은 답변, 검색 출처, Tool trace와 필요 시 구조화된 ticket ID/status를 포함합니다. 자연어 답변의 PENDING 문자열만으로 티켓 배지를 만들지 않습니다. Tool trace는 요청 범위에서 호출 이름, 허용된 인자, 결과와 지연을 기록하고 사용자 질문 및 티켓 자유 텍스트는 trace에 포함하지 않습니다.
 
-### 대화 경계
+## 배포 구성
 
-Memory key는 `userId:sessionId`다. 동일 sessionId라도 userId가 다르면 이력을 공유하지 않는다. 20-message window로 대화 길이와 토큰을 제한한다.
-이는 저장 키의 분리다. 현재 호출자는 `userId`를 임의로 지정할 수 있고 `/api/history`와 `/api/admin/tickets`에도 인증·권한 검사가 없다. 이 구조는 로컬 데모용이며 실제 사용자 데이터가 있는 공개 서비스의 접근 통제가 아니다.
+- 로컬 Docker Compose는 Spring Boot와 PostgreSQL을 실행하고 React 개발 서버는 별도 실행합니다.
+- AWS Compose는 Nginx/React, Spring Boot, PostgreSQL을 digest 고정 이미지로 실행합니다. Frontend만 host loopback에 바인딩되어 SSM port forwarding으로 접근합니다.
+- PostgreSQL 데이터는 별도 암호화 EBS 경로에 저장되고, 논리 backup은 지정 S3 경로에 올립니다.
+- 애플리케이션 프로세스 liveness, DB 중심 핵심 readiness, AI/RAG health는 구분됩니다. AI 장애가 비AI 서비스 readiness를 자동으로 DOWN 처리하지 않습니다.
+- GitHub Actions CI는 테스트와 native ARM64 image 검증을 수행합니다. 수동 ECR publish 및 production 승인 기반 SSM deploy는 별도 workflow입니다. 게시 역할과 배포 역할은 OIDC/IAM으로 분리합니다.
 
-### 입력 Guard의 범위
+## 유지되는 제한
 
-`HelpDeskService.validate()`는 모델·RAG·Tool·Memory보다 먼저 Prompt Injection 규칙과 `UserInputSafetyAdvisor`의 비밀번호·OTP·API 키 형태 및 타 사용자 요청 표현을 검사한다. 모델 경로에서는 같은 Safety Advisor가 Memory Advisor보다 앞에 있다. 현재 `main`에는 별도 `PrivacyGuard`가 없으며 이메일·전화번호·주민번호의 포괄적 선차단을 주장하지 않는다.
-
-### RAG source의 의미
-
-`QuestionAnswerAdvisor`가 모델 요청의 검색을 처리한다. 응답의 `sources`는 `HelpDeskService.findSources()`가 **모델 답변 뒤 별도로 검색**한 파일명이다. 따라서 화면의 source 목록이나 source hit 지표가 답변의 문장별 근거·충실도를 증명하지는 않는다. 인메모리 VectorStore는 서버 재시작 후 다시 인제스트해야 한다.
-
-### 실행 범위
-
-`TicketRepository`는 PostgreSQL에 저장하며 Flyway migration을 사용한다. `AccessRepository`, Chat Memory와 VectorStore는 여전히 인메모리다. 실제 IAM·ITSM 연동은 범위 밖이다. 기본 fallback 모델명은 primary와 동일하며 `FALLBACK_MODEL`로 별도 지정할 수 있다.
+실제 기업 Identity Provider, IAM 권한 부여, ITSM 티켓 시스템은 연결하지 않습니다. 계정·접근권한 표본과 Chat Memory·VectorStore는 영구 저장소가 아닙니다. AWS 배포는 한 차례 검증한 개인 포트폴리오 환경이며 상시 공개 서비스로 운영하지 않습니다.
